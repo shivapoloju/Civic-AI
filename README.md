@@ -23,7 +23,7 @@ The system operates on a modular, event-driven service architecture designed to 
 ```mermaid
 graph TD
     %% Portals (React Clients)
-    subgraph Frontend Client (Vite + React)
+    subgraph "Frontend Client (Vite + React)"
         Citizen[Citizen Portal] -->|1. Submit Complaint / Rate / Reject| Backend[Express Gateway Server]
         Worker[Field Tech Portal] -->|4. Update Status / Upload Resolution Proof| Backend
         Supervisor[Supervisor Portal] -->|2. Route Dispatches / 5. Verify Quality| Backend
@@ -34,13 +34,13 @@ graph TD
     Backend <-->|WebSockets Room Channels| Sockets[Socket.io Real-time Signals]
 
     %% Databases
-    subgraph Database Layer
+    subgraph "Database Layer"
         Backend -->|Sequelize ORM| SQL[(SQLite/Postgres Relational DB)]
         Backend -->|Mongoose / NeDB| NoSQL[(MongoDB Audit Trail Logs)]
     end
 
     %% AI Services
-    subgraph AI Microservice (FastAPI + Python)
+    subgraph "AI Microservice (FastAPI + Python)"
         Backend <-->|Axios Gateway REST API| PythonAI[FastAPI AI Backend]
         PythonAI -->|Inference Engine| YOLO[YOLOv8 Object Detector]
         PythonAI -->|Multimodal Visual AI| Gemini[Gemini 1.5 Flash Vision API]
