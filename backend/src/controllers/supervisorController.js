@@ -167,6 +167,10 @@ exports.assignWorker = async (req, res) => {
       return res.status(404).json({ error: 'Worker not found.' });
     }
 
+    if (worker.departmentId !== complaint.departmentId) {
+      return res.status(400).json({ error: 'Cannot assign task to a worker from a different department.' });
+    }
+
     // Create assignment
     const assignment = await Assignment.create({
       complaintId,
@@ -218,12 +222,22 @@ exports.assignWorker = async (req, res) => {
   }
 };
 
-// Retrieve workers for routing recommendations
+// Retrieve workers for routing recommendations (filtered by supervisor's department only)
 exports.getAvailableWorkers = async (req, res) => {
   try {
+    const supervisorId = req.user.id;
+    const supervisor = await User.findByPk(supervisorId);
+    if (!supervisor || !supervisor.departmentId) {
+      return res.status(400).json({ error: 'Supervisor is not assigned to any department.' });
+    }
+
     const { departmentId } = req.query;
-    const whereClause = { status: 'available' };
-    if (departmentId) whereClause.departmentId = departmentId;
+    const targetDeptId = departmentId || supervisor.departmentId;
+
+    const whereClause = { 
+      status: 'available',
+      departmentId: targetDeptId
+    };
 
     const workers = await Worker.findAll({
       where: whereClause,
