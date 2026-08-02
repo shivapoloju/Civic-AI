@@ -2,6 +2,8 @@
 
 > **Hackathon Submission Category:** Smart Cities & AI-Driven Governance
 > *Tagline: "See it. Capture it. Track it. Verify it. Improve your city together."*
+> 
+> **🌐 Live Production URL:** [https://civic-ai-snowy-eight.vercel.app/](https://civic-ai-snowy-eight.vercel.app/)
 
 ---
 
