@@ -18,7 +18,9 @@ CivicAI solves these challenges by combining:
 
 ## 🏗️ Technical Architecture Diagram
 
-The system operates on a modular, event-driven service architecture desig```mermaid
+The system operates on a modular, event-driven service architecture designed to scale:
+
+```mermaid
 graph TD
     %% Portals (React Clients)
     subgraph "Unified Frontend Portal (Vite + React)"
