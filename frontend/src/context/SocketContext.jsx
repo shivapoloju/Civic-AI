@@ -9,7 +9,12 @@ export const SocketProvider = ({ children }) => {
   const [liveUpdate, setLiveUpdate] = useState(null);
   const { user } = useAuth();
 
-  const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+  let rawSocketUrl = import.meta.env.VITE_SOCKET_URL;
+  if (!rawSocketUrl && import.meta.env.VITE_API_URL) {
+    const apiPart = import.meta.env.VITE_API_URL;
+    rawSocketUrl = apiPart.endsWith('/api') ? apiPart.slice(0, -4) : apiPart;
+  }
+  const SOCKET_URL = rawSocketUrl || 'http://localhost:5000';
 
   useEffect(() => {
     if (!user) {

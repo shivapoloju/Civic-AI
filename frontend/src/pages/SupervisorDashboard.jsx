@@ -47,6 +47,7 @@ const t = {
 const SupervisorDashboard = () => {
   const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
   const API_URL = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
+  const BASE_URL = API_URL.endsWith('/api') ? API_URL.slice(0, -4) : API_URL;
   const [pendingVerifications, setPendingVerifications] = useState([]);
   const [unassignedComplaints, setUnassignedComplaints] = useState([]);
   const [lang, setLang] = useState(localStorage.getItem('civic_lang') || 'en');
@@ -553,7 +554,7 @@ const SupervisorDashboard = () => {
               <div className="border dark:border-slate-800 rounded-2xl p-2.5 bg-slate-900">
                 <span className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Before: Issue reported</span>
                 {selectedAudit.imageUrlBefore ? (
-                  <img src={`http://localhost:5000${selectedAudit.imageUrlBefore}`} className="w-full h-48 object-cover rounded-lg" />
+                  <img src={`${BASE_URL}${selectedAudit.imageUrlBefore}`} className="w-full h-48 object-cover rounded-lg" />
                 ) : (
                   <div className="w-full h-48 bg-slate-800 rounded-lg flex items-center justify-center text-slate-500 text-xs">No Photo</div>
                 )}
@@ -562,7 +563,7 @@ const SupervisorDashboard = () => {
               <div className="border dark:border-slate-800 rounded-2xl p-2.5 bg-slate-900">
                 <span className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">After: Work completed</span>
                 {selectedAudit.imageUrlAfter ? (
-                  <img src={`http://localhost:5000${selectedAudit.imageUrlAfter}`} className="w-full h-48 object-cover rounded-lg" />
+                  <img src={`${BASE_URL}${selectedAudit.imageUrlAfter}`} className="w-full h-48 object-cover rounded-lg" />
                 ) : (
                   <div className="w-full h-48 bg-slate-800 rounded-lg flex items-center justify-center text-slate-500 text-xs">No Photo</div>
                 )}

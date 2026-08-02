@@ -54,6 +54,7 @@ const AdminDashboard = () => {
 
   const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
   const API_URL = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
+  const BASE_URL = API_URL.endsWith('/api') ? API_URL.slice(0, -4) : API_URL;
 
   useEffect(() => {
     const handleLangUpdate = () => {
@@ -744,7 +745,7 @@ const AdminDashboard = () => {
               <div>
                 <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Citizen Reported Photo</span>
                 {selectedComplaint.imageUrlBefore ? (
-                  <img src={`http://localhost:5000${selectedComplaint.imageUrlBefore}`} className="w-full h-40 object-cover rounded-xl border dark:border-slate-800" />
+                  <img src={`${BASE_URL}${selectedComplaint.imageUrlBefore}`} className="w-full h-40 object-cover rounded-xl border dark:border-slate-800" />
                 ) : (
                   <div className="w-full h-40 bg-slate-100 dark:bg-darkbg-800 rounded-xl flex items-center justify-center text-slate-400 text-xs">No Photo</div>
                 )}
@@ -752,7 +753,7 @@ const AdminDashboard = () => {
               <div>
                 <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Repair After Photo</span>
                 {selectedComplaint.imageUrlAfter ? (
-                  <img src={`http://localhost:5000${selectedComplaint.imageUrlAfter}`} className="w-full h-40 object-cover rounded-xl border dark:border-slate-800" />
+                  <img src={`${BASE_URL}${selectedComplaint.imageUrlAfter}`} className="w-full h-40 object-cover rounded-xl border dark:border-slate-800" />
                 ) : (
                   <div className="w-full h-40 bg-slate-100 dark:bg-darkbg-800 rounded-xl flex items-center justify-center text-slate-400 text-xs">Awaiting Repair</div>
                 )}

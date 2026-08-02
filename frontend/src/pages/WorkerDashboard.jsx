@@ -156,6 +156,7 @@ const WorkerDashboard = () => {
 
   const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
   const API_URL = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
+  const BASE_URL = API_URL.endsWith('/api') ? API_URL.slice(0, -4) : API_URL;
 
   useEffect(() => {
     if (!selectedTask?.Complaint?.description) {
@@ -513,7 +514,7 @@ const WorkerDashboard = () => {
               <div>
                 <span className="block text-[10px] font-bold uppercase text-slate-400 mb-1">{t[lang].issuePhoto}</span>
                 {selectedTask.Complaint?.imageUrlBefore ? (
-                  <img src={`http://localhost:5000${selectedTask.Complaint.imageUrlBefore}`} className="w-full h-36 object-cover rounded-xl border dark:border-slate-800" />
+                  <img src={`${BASE_URL}${selectedTask.Complaint.imageUrlBefore}`} className="w-full h-36 object-cover rounded-xl border dark:border-slate-800" />
                 ) : (
                   <div className="w-full h-36 bg-slate-100 dark:bg-darkbg-800 rounded-xl flex items-center justify-center text-slate-400 text-xs">No Photo</div>
                 )}
