@@ -54,6 +54,8 @@ const SupervisorDashboard = () => {
   const [translatedFeedback, setTranslatedFeedback] = useState('');
   const [translatedDesc, setTranslatedDesc] = useState('');
   const [aiReport, setAiReport] = useState(null);
+  const [selectedAudit, setSelectedAudit] = useState(null);
+  const [selectedDispatch, setSelectedDispatch] = useState(null);
 
   useEffect(() => {
     const handleLangUpdate = () => {
@@ -92,9 +94,6 @@ const SupervisorDashboard = () => {
   const [availableWorkers, setAvailableWorkers] = useState([]);
   const [complaints, setComplaints] = useState([]);
   const { user } = useAuth();
-
-  const [selectedAudit, setSelectedAudit] = useState(null);
-  const [selectedDispatch, setSelectedDispatch] = useState(null);
   
   useEffect(() => {
     if (!aiReport?.feedback) {
