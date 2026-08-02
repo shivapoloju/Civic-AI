@@ -9,12 +9,14 @@ services:
     envVars:
       - key: PORT
         value: 5000
+      - key: NODE_ENV
+        value: production
       - key: JWT_SECRET
         generateValue: true
       - key: DATABASE_URL
-        value: postgres://postgres:password123@postgres:5432/civicai  # Switch to hosted Postgres URL in production
-      - key: MONGODB_URI
-        value: mongodb://localhost:27017/civicai                      # Switch to hosted MongoDB URL in production
+        fromDatabase:
+          name: civicai-db
+          property: connectionString
       - key: AI_SERVICE_URL
         value: https://civicai-ai-service.onrender.com                # Replace with actual Render URL of AI service
 
@@ -32,3 +34,9 @@ services:
         value: 0.0.0.0
       - key: GROQ_API_KEY
         sync: false
+
+databases:
+  - name: civicai-db
+    databaseName: civicai
+    user: postgres
+    plan: free
