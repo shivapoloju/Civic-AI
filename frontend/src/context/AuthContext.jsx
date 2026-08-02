@@ -12,6 +12,25 @@ export const AuthProvider = ({ children }) => {
   const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
   const API_URL = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
 
+  // Global Axios Interceptor to handle session expiration or database resets gracefully
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response && error.response.status === 401) {
+          setToken(null);
+          setUser(null);
+          localStorage.removeItem('civicai_token');
+          window.location.href = '/login';
+        }
+        return Promise.reject(error);
+      }
+    );
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
+  }, []);
+
   // Configure global axios authorization
   useEffect(() => {
     if (token) {
