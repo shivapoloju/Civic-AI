@@ -22,6 +22,12 @@ const SupervisorDashboard = () => {
   const [feedback, setFeedback] = useState('');
   const [decision, setDecision] = useState(''); // 'approve', 'send_back'
 
+  // Add Worker form states
+  const [workerName, setWorkerName] = useState('');
+  const [workerEmail, setWorkerEmail] = useState('');
+  const [workerPassword, setWorkerPassword] = useState('');
+  const [workerPhone, setWorkerPhone] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -138,6 +144,39 @@ const SupervisorDashboard = () => {
     }
   };
 
+  // Add Worker submit
+  const handleAddWorker = async (e) => {
+    e.preventDefault();
+    if (!workerName || !workerEmail || !workerPassword || !workerPhone) {
+      setErrorMsg('All fields are required to create a worker account.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setErrorMsg('');
+      setSuccessMsg('');
+
+      const res = await axios.post(`${API_URL}/supervisors/worker`, {
+        name: workerName,
+        email: workerEmail,
+        password: workerPassword,
+        phone: workerPhone
+      });
+
+      setSuccessMsg(res.data.message);
+      setWorkerName('');
+      setWorkerEmail('');
+      setWorkerPassword('');
+      setWorkerPhone('');
+      fetchSupervisorBoard();
+    } catch (err) {
+      setErrorMsg(err.response?.data?.error || 'Failed to create worker account.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -224,6 +263,68 @@ const SupervisorDashboard = () => {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Create Field Worker Form */}
+          <div className="glass-panel shadow-md rounded-2xl p-6 border dark:border-slate-800 mt-6">
+            <h2 className="text-base font-bold flex items-center gap-2 mb-4 text-slate-300">
+              <UserPlus className="w-5 h-5 text-indigo-500" />
+              <span>Create Field Worker</span>
+            </h2>
+
+            <form onSubmit={handleAddWorker} className="space-y-3.5">
+              <div>
+                <input 
+                  type="text" 
+                  value={workerName}
+                  onChange={e => setWorkerName(e.target.value)}
+                  required
+                  placeholder="Full Name" 
+                  className="w-full px-3 py-2 bg-darkbg-800 border dark:border-slate-800 rounded-xl text-slate-300 text-xs focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <input 
+                  type="email" 
+                  value={workerEmail}
+                  onChange={e => setWorkerEmail(e.target.value)}
+                  required
+                  placeholder="Email Address" 
+                  className="w-full px-3 py-2 bg-darkbg-800 border dark:border-slate-800 rounded-xl text-slate-300 text-xs focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <input 
+                  type="password" 
+                  value={workerPassword}
+                  onChange={e => setWorkerPassword(e.target.value)}
+                  required
+                  placeholder="Password" 
+                  className="w-full px-3 py-2 bg-darkbg-800 border dark:border-slate-800 rounded-xl text-slate-300 text-xs focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <input 
+                  type="text" 
+                  value={workerPhone}
+                  onChange={e => setWorkerPhone(e.target.value)}
+                  required
+                  placeholder="Phone Number" 
+                  className="w-full px-3 py-2 bg-darkbg-800 border dark:border-slate-800 rounded-xl text-slate-300 text-xs focus:outline-none"
+                />
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white font-extrabold rounded-xl text-xs uppercase tracking-wider shadow"
+              >
+                Create Worker Account
+              </button>
+            </form>
           </div>
         </div>
 

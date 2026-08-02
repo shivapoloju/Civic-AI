@@ -8,6 +8,7 @@ router.post('/department', authMiddleware, authorize('admin'), adminController.c
 router.get('/departments', authMiddleware, adminController.listDepartments);
 router.post('/change-role', authMiddleware, authorize('admin'), adminController.updateUserRole);
 router.post('/worker', authMiddleware, authorize('admin'), adminController.createWorker);
+router.post('/supervisor', authMiddleware, authorize('admin'), adminController.createSupervisor);
 router.get('/audit', authMiddleware, authorize('admin'), adminController.getAuditTrail);
 
 module.exports = router;

@@ -7,6 +7,23 @@ exports.getUsers = async (req, res) => {
   try {
     const users = await User.findAll({
       attributes: ['id', 'name', 'email', 'role', 'phone', 'civicPoints', 'createdAt'],
+      include: [
+        {
+          model: Department,
+          as: 'department',
+          attributes: ['id', 'name']
+        },
+        {
+          model: Worker,
+          attributes: ['id', 'status'],
+          include: [
+            {
+              model: Department,
+              attributes: ['id', 'name']
+            }
+          ]
+        }
+      ],
       order: [['createdAt', 'DESC']]
     });
     res.json(users);
@@ -146,5 +163,47 @@ exports.createWorker = async (req, res) => {
   } catch (error) {
     console.error('Admin createWorker error:', error);
     res.status(500).json({ error: 'Failed to create worker account.' });
+  }
+};
+
+// Create a new Supervisor account and bind to a department
+exports.createSupervisor = async (req, res) => {
+  try {
+    const { name, email, password, phone, departmentId } = req.body;
+    
+    if (!name || !email || !password || !phone || !departmentId) {
+      return res.status(400).json({ error: 'All fields (name, email, password, phone, department) are required.' });
+    }
+
+    const existing = await User.findOne({ where: { email } });
+    if (existing) {
+      return res.status(400).json({ error: 'User with this email already exists.' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const user = await User.create({
+      email,
+      passwordHash,
+      name,
+      role: 'supervisor',
+      phone,
+      departmentId,
+      civicPoints: 0
+    });
+
+    res.status(201).json({
+      message: `Supervisor account for ${name} created and assigned successfully.`,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        departmentId: user.departmentId
+      }
+    });
+  } catch (error) {
+    console.error('Admin createSupervisor error:', error);
+    res.status(500).json({ error: 'Failed to create supervisor account.' });
   }
 };

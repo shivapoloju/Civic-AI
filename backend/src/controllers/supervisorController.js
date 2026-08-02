@@ -239,3 +239,58 @@ exports.getAvailableWorkers = async (req, res) => {
     res.status(500).json({ error: 'Failed to retrieve available workers list.' });
   }
 };
+
+// Create a new Field Worker under supervisor department
+exports.createWorker = async (req, res) => {
+  try {
+    const supervisorId = req.user.id;
+    const { name, email, password, phone } = req.body;
+
+    if (!name || !email || !password || !phone) {
+      return res.status(400).json({ error: 'All fields (name, email, password, phone) are required.' });
+    }
+
+    const supervisor = await User.findByPk(supervisorId);
+    if (!supervisor || !supervisor.departmentId) {
+      return res.status(400).json({ error: 'Supervisor is not assigned to any municipal department.' });
+    }
+
+    const existing = await User.findOne({ where: { email } });
+    if (existing) {
+      return res.status(400).json({ error: 'User with this email already exists.' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const user = await User.create({
+      email,
+      passwordHash,
+      name,
+      role: 'worker',
+      phone,
+      civicPoints: 0
+    });
+
+    const worker = await Worker.create({
+      userId: user.id,
+      departmentId: supervisor.departmentId,
+      status: 'available'
+    });
+
+    await logActivity('Worker', worker.id, 'CREATED_BY_SUPERVISOR', supervisorId);
+
+    res.status(201).json({
+      message: `Worker account for ${name} created and assigned to department successfully.`,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      },
+      worker
+    });
+  } catch (error) {
+    console.error('Supervisor createWorker error:', error);
+    res.status(500).json({ error: 'Failed to create worker account.' });
+  }
+};

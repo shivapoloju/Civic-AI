@@ -46,6 +46,11 @@ const User = sequelize.define('User', {
   civicPoints: {
     type: DataTypes.INTEGER,
     defaultValue: 0
+  },
+  departmentId: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: { model: 'Departments', key: 'id' }
   }
 }, {
   timestamps: true,
@@ -272,6 +277,9 @@ const Rating = sequelize.define('Rating', {
 // Relationships
 User.hasOne(Worker, { foreignKey: 'userId' });
 Worker.belongsTo(User, { foreignKey: 'userId' });
+
+User.belongsTo(Department, { foreignKey: 'departmentId', as: 'department' });
+Department.hasMany(User, { foreignKey: 'departmentId', as: 'supervisors' });
 
 Department.hasMany(Worker, { foreignKey: 'departmentId' });
 Worker.belongsTo(Department, { foreignKey: 'departmentId' });

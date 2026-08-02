@@ -114,7 +114,8 @@ const seedDatabase = async () => {
         name: 'Municipal Supervisor',
         passwordHash: supervisorPasswordHash,
         role: 'supervisor',
-        phone: '2222222222'
+        phone: '2222222222',
+        departmentId: deptInstances['Roads'].id
       }
     });
 

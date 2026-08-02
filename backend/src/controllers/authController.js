@@ -13,8 +13,8 @@ exports.signup = async (req, res) => {
   try {
     const { email, password, name, role, phone, departmentName } = req.body;
 
-    if (!email || !password || !name) {
-      return res.status(400).json({ error: 'Email, password, and name are required.' });
+    if (!email || !password || !name || !phone) {
+      return res.status(400).json({ error: 'Email, password, name, and mobile number are required.' });
     }
 
     const existingUser = await User.findOne({ where: { email } });

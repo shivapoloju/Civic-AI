@@ -30,6 +30,13 @@ const AdminDashboard = () => {
   const [workerPhone, setWorkerPhone] = useState('');
   const [workerDeptId, setWorkerDeptId] = useState('');
 
+  // Add Supervisor account states
+  const [supervisorName, setSupervisorName] = useState('');
+  const [supervisorEmail, setSupervisorEmail] = useState('');
+  const [supervisorPassword, setSupervisorPassword] = useState('');
+  const [supervisorPhone, setSupervisorPhone] = useState('');
+  const [supervisorDeptId, setSupervisorDeptId] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -140,6 +147,41 @@ const AdminDashboard = () => {
       fetchAdminData();
     } catch (err) {
       setErrorMsg(err.response?.data?.error || 'Failed to create worker account.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Add Supervisor submit
+  const handleAddSupervisor = async (e) => {
+    e.preventDefault();
+    if (!supervisorName || !supervisorEmail || !supervisorPassword || !supervisorPhone || !supervisorDeptId) {
+      setErrorMsg('All fields are required to create a supervisor account.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setErrorMsg('');
+      setSuccessMsg('');
+
+      const res = await axios.post(`${API_URL}/admin/supervisor`, {
+        name: supervisorName,
+        email: supervisorEmail,
+        password: supervisorPassword,
+        phone: supervisorPhone,
+        departmentId: supervisorDeptId
+      });
+
+      setSuccessMsg(res.data.message);
+      setSupervisorName('');
+      setSupervisorEmail('');
+      setSupervisorPassword('');
+      setSupervisorPhone('');
+      setSupervisorDeptId('');
+      fetchAdminData();
+    } catch (err) {
+      setErrorMsg(err.response?.data?.error || 'Failed to create supervisor account.');
     } finally {
       setLoading(false);
     }
@@ -354,6 +396,81 @@ const AdminDashboard = () => {
             </form>
           </div>
 
+          {/* Create Supervisor Form */}
+          <div className="glass-panel shadow-md rounded-2xl p-6 border dark:border-slate-800">
+            <h3 className="font-bold text-sm uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
+              <UserCog className="w-5 h-5 text-emerald-500" /> Create Supervisor
+            </h3>
+
+            <form onSubmit={handleAddSupervisor} className="space-y-3.5">
+              <div>
+                <input 
+                  type="text" 
+                  value={supervisorName}
+                  onChange={e => setSupervisorName(e.target.value)}
+                  required
+                  placeholder="Full Name" 
+                  className="w-full px-3 py-2 bg-darkbg-800 border dark:border-slate-800 rounded-xl text-slate-300 text-xs focus:outline-none animate-focus"
+                />
+              </div>
+
+              <div>
+                <input 
+                  type="email" 
+                  value={supervisorEmail}
+                  onChange={e => setSupervisorEmail(e.target.value)}
+                  required
+                  placeholder="Email Address" 
+                  className="w-full px-3 py-2 bg-darkbg-800 border dark:border-slate-800 rounded-xl text-slate-300 text-xs focus:outline-none animate-focus"
+                />
+              </div>
+
+              <div>
+                <input 
+                  type="password" 
+                  value={supervisorPassword}
+                  onChange={e => setSupervisorPassword(e.target.value)}
+                  required
+                  placeholder="Password" 
+                  className="w-full px-3 py-2 bg-darkbg-800 border dark:border-slate-800 rounded-xl text-slate-300 text-xs focus:outline-none animate-focus"
+                />
+              </div>
+
+              <div>
+                <input 
+                  type="text" 
+                  value={supervisorPhone}
+                  onChange={e => setSupervisorPhone(e.target.value)}
+                  required
+                  placeholder="Phone Number" 
+                  className="w-full px-3 py-2 bg-darkbg-800 border dark:border-slate-800 rounded-xl text-slate-300 text-xs focus:outline-none animate-focus"
+                />
+              </div>
+
+              <div>
+                <select 
+                  value={supervisorDeptId}
+                  onChange={e => setSupervisorDeptId(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 bg-darkbg-800 border dark:border-slate-800 rounded-xl text-slate-300 text-xs focus:outline-none"
+                >
+                  <option value="">Select Department...</option>
+                  {departments.map(d => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold rounded-xl text-xs uppercase tracking-wider shadow"
+              >
+                Create Supervisor Account
+              </button>
+            </form>
+          </div>
+
         </div>
 
         {/* Right Side Column: Accounts Board & Audit Trails */}
@@ -445,6 +562,7 @@ const AdminDashboard = () => {
                         <th className="py-2">Name</th>
                         <th className="py-2">Email</th>
                         <th className="py-2">Role</th>
+                        <th className="py-2">Department</th>
                         <th className="py-2">Civic Points</th>
                       </tr>
                     </thead>
@@ -454,6 +572,11 @@ const AdminDashboard = () => {
                           <td className="py-2 font-bold">{u.name}</td>
                           <td className="py-2 text-slate-500">{u.email}</td>
                           <td className="py-2"><span className="px-2 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-darkbg-800 font-bold capitalize">{u.role}</span></td>
+                          <td className="py-2 text-slate-400">
+                            {u.role === 'supervisor' ? (u.department?.name || 'Roads') : 
+                             u.role === 'worker' ? (u.Worker?.Department?.name || u.worker?.Department?.name || u.Worker?.department?.name || u.worker?.department?.name || 'Roads') : 
+                             '-'}
+                          </td>
                           <td className="py-2 text-amber-500 font-extrabold">{u.civicPoints} pts</td>
                         </tr>
                       ))}

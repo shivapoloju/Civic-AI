@@ -8,5 +8,6 @@ router.post('/compare-images', authMiddleware, authorize('supervisor', 'officer'
 router.post('/verify-decision', authMiddleware, authorize('supervisor', 'officer', 'admin'), supervisorController.processVerification);
 router.post('/assign-worker', authMiddleware, authorize('supervisor', 'officer', 'admin'), supervisorController.assignWorker);
 router.get('/available-workers', authMiddleware, authorize('supervisor', 'officer', 'admin'), supervisorController.getAvailableWorkers);
+router.post('/worker', authMiddleware, authorize('supervisor'), supervisorController.createWorker);
 
 module.exports = router;
