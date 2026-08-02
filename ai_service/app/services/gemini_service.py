@@ -263,6 +263,7 @@ def run_local_image_fallback(image_bytes: bytes, audio_transcript: str = None, i
     dept = "Sanitation"
     priority = "medium"
     description = "Accumulated trash and solid waste overflowing on the street, causing unhygienic conditions."
+    explanation = "AI identified this issue via visual heuristics."
 
     # First check filename keyword heuristics
     matched = False
@@ -316,6 +317,9 @@ def run_local_image_fallback(image_bytes: bytes, audio_transcript: str = None, i
             priority = "high"
             description = "Unauthorized dumping of commercial or construction waste in a public zone."
             matched = True
+            
+        if matched:
+            explanation = f"AI classified this issue as {category} based on mock filename keyword match ('{image_filename}') for hackathon evaluation."
 
     # If no filename match, determine category dynamically based on image color analysis
     if not matched and image_bytes:
@@ -357,26 +361,31 @@ def run_local_image_fallback(image_bytes: bytes, audio_transcript: str = None, i
                 dept = "Parks"
                 priority = "medium"
                 description = "A fallen tree or heavy branch is blocking the public sidewalk or roadway."
+                explanation = "AI classified this issue as Fallen trees because color distribution analysis detected a high density (>12%) of green foliage hues characteristic of broken tree branches obstructing public pathways."
             elif (gray_count / total) > 0.20:
                 category = "Potholes"
                 dept = "Roads"
                 priority = "high"
                 description = "A deep pothole or road surface depression detected on the asphalt roadway."
+                explanation = "AI classified this issue as Potholes because color distribution analysis detected a high density (>20%) of neutral gray values characteristic of standard asphalt road surfaces."
             elif (bright_count / total) > 0.05 and r_mean < 110:
                 category = "Street lights"
                 dept = "Electricity"
                 priority = "medium"
                 description = "Street light bulb failure or exposed electrical wiring in this sector."
+                explanation = "AI classified this issue as Street lights because pixel brightness analysis detected high-contrast light points against a low overall ambient light level."
             elif avg_var > 1000:
                 category = "Garbage"
                 dept = "Sanitation"
                 priority = "medium"
                 description = "Accumulated household waste, plastic packaging, and discarded items on the pathway."
+                explanation = "AI classified this issue as Garbage because the color channel standard deviation is high (>1000), which represents a high-contrast multi-color object profile typical of waste piles."
             else:
                 category = "Garbage"
                 dept = "Sanitation"
                 priority = "medium"
                 description = "Public grievance reported. Verification required."
+                explanation = "AI classified this issue as Garbage via dynamic visual heuristic fallback."
                 
             # If color variance is extremely low, it's likely a blank/dummy image (solid colors/plain document)
             is_fake = avg_var < 300

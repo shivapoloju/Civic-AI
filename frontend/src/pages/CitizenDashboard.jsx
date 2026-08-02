@@ -209,7 +209,8 @@ const CitizenDashboard = () => {
         setDetectedIssue({
           category: analysis.category || 'Garbage',
           confidence: analysis.confidenceScore || 0.95,
-          description: analysis.description || 'AI analyzed image.'
+          description: analysis.description || 'AI analyzed image.',
+          explanation: analysis.explanation || ''
         });
         if (analysis.category) {
           setCategory(analysis.category);
@@ -576,15 +577,20 @@ const CitizenDashboard = () => {
 
               {/* AI Detection results notification */}
               {detectedIssue && (
-                <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-2xl flex items-start gap-2 animate-pulse">
-                  <Sparkles className="w-4 h-4 text-purple-400 shrink-0 mt-0.5 animate-spin" />
-                  <div className="text-xs">
+                <div className="p-3.5 bg-purple-500/10 border border-purple-500/20 rounded-2xl flex items-start gap-2">
+                  <Sparkles className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                  <div className="text-xs space-y-1">
                     <span className="font-extrabold text-purple-400 block uppercase tracking-wider text-[9px]">
                       AI Auto-Detection Diagnostics
                     </span>
                     <p className="text-slate-300 mt-1">
                       Identified Hazard: <span className="font-extrabold text-white text-sm capitalize">{t[lang].categories[detectedIssue.category] || detectedIssue.category}</span>
                     </p>
+                    {detectedIssue.explanation && (
+                      <p className="text-slate-400 italic text-[10px] mt-0.5 leading-relaxed">
+                        Reasoning: {detectedIssue.explanation}
+                      </p>
+                    )}
                     <p className="text-[10px] text-slate-400 mt-0.5">
                       Confidence: {(detectedIssue.confidence * 100).toFixed(0)}% • Category dropdown populated.
                     </p>
