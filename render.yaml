@@ -38,5 +38,5 @@ services:
 databases:
   - name: civicai-db
     databaseName: civicai
-    user: postgres
+    user: civicadmin
     plan: free
