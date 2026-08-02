@@ -13,10 +13,6 @@ services:
         value: production
       - key: JWT_SECRET
         generateValue: true
-      - key: DATABASE_URL
-        fromDatabase:
-          name: civicai-db
-          property: connectionString
       - key: AI_SERVICE_URL
         value: https://civicai-ai-service.onrender.com                # Replace with actual Render URL of AI service
 
@@ -34,9 +30,3 @@ services:
         value: 0.0.0.0
       - key: GROQ_API_KEY
         sync: false
-
-databases:
-  - name: civicai-db
-    databaseName: civicai
-    user: civicadmin
-    plan: free
