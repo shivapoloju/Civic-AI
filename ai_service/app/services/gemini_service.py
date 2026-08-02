@@ -168,7 +168,30 @@ def run_yolov8_classification(image_bytes: bytes) -> dict:
         has_trash = any(cls in detected_classes for cls in ["cup", "bottle", "bowl", "banana", "apple", "sandwich", "backpack", "suitcase", "handbag", "umbrella"])
         has_vegetation = any(cls in detected_classes for cls in ["potted plant", "bench", "chair"])
 
-        if has_vehicle or has_road_sign:
+        if has_trash:
+            category = "Garbage"
+            dept = "Sanitation"
+            priority = "medium"
+            
+            if has_vehicle:
+                category = "Illegal dumping"
+                description = "Illegal dumping of household waste, bags, and commercial garbage bags next to active street lanes."
+                priority = "high"
+            else:
+                description = "Unattended garbage accumulation and solid waste piles causing unhygienic conditions on the pathway."
+
+        elif has_water_source:
+            category = "Water leakage"
+            dept = "Water"
+            priority = "high"
+            
+            if has_trash:
+                description = "Water pipeline rupture near garbage dump area, leading to contaminated pooling on the sidewalk."
+                priority = "critical"
+            else:
+                description = "Municipal water supply line leak or open hydrant causing clean water loss and local street flooding."
+
+        elif has_vehicle or has_road_sign:
             category = "Potholes"
             dept = "Roads"
             priority = "high"
@@ -185,29 +208,6 @@ def run_yolov8_classification(image_bytes: bytes) -> dict:
                 description = "Non-functional street lighting or traffic signal failure, reducing night visibility in this sector."
             else:
                 description = "Asphalt road distress with visible surface irregularities, bumps, and warning signs."
-                
-        elif has_water_source:
-            category = "Water leakage"
-            dept = "Water"
-            priority = "high"
-            
-            if has_trash:
-                description = "Water pipeline rupture near garbage dump area, leading to contaminated pooling on the sidewalk."
-                priority = "critical"
-            else:
-                description = "Municipal water supply line leak or open hydrant causing clean water loss and local street flooding."
-
-        elif has_trash:
-            category = "Garbage"
-            dept = "Sanitation"
-            priority = "medium"
-            
-            if has_vehicle:
-                category = "Illegal dumping"
-                description = "Illegal dumping of household waste, bags, and commercial garbage bags next to active street lanes."
-                priority = "high"
-            else:
-                description = "Unattended garbage accumulation and solid waste piles causing unhygienic conditions on the pathway."
 
         elif has_vegetation:
             category = "Fallen trees"
@@ -218,6 +218,7 @@ def run_yolov8_classification(image_bytes: bytes) -> dict:
                 description = "Fallen tree branches or overgrown plants blocking traffic regulatory signs on the street side."
                 priority = "high"
             else:
+                description = "Fallen branches or botanical debris obstructing pedestrian movement on the public walkway."
                 description = "Fallen branches or botanical debris obstructing pedestrian movement on the public walkway."
                 
         else:
