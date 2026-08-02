@@ -317,53 +317,72 @@ def run_local_image_fallback(image_bytes: bytes, audio_transcript: str = None, i
             description = "Unauthorized dumping of commercial or construction waste in a public zone."
             matched = True
 
-    # If no filename match, determine category dynamically based on image content (byte hashes)
+    # If no filename match, determine category dynamically based on image color analysis
     if not matched and image_bytes:
-        # Sum middle slice bytes + file size to get highly variable dynamic categories
-        middle = len(image_bytes) // 2
-        byte_sum = len(image_bytes) + sum(image_bytes[middle : middle + 2000]) if len(image_bytes) > 0 else 0
-        hash_val = byte_sum % 8
-
-        if hash_val == 0:
-            category = "Potholes"
-            dept = "Roads"
-            priority = "high"
-            description = "A deep pothole has formed on the road surface, causing safety hazards for vehicles."
-        elif hash_val == 1:
-            category = "Water leakage"
-            dept = "Water"
-            priority = "high"
-            description = "Major water pipeline leak detected, resulting in road flooding and water wastage."
-        elif hash_val == 2:
-            category = "Street lights"
-            dept = "Electricity"
-            priority = "medium"
-            description = "Street light is broken or non-functional, reducing visibility and security in the area."
-        elif hash_val == 3:
-            category = "Open manholes"
-            dept = "Sanitation"
-            priority = "critical"
-            description = "An open manhole is left uncovered on the street, presenting a severe risk to pedestrians."
-        elif hash_val == 4:
-            category = "Drainage"
-            dept = "Sanitation"
-            priority = "high"
-            description = "Sewer or drainage line blockage causing dirty water overflow on the main road."
-        elif hash_val == 5:
-            category = "Garbage"
-            dept = "Sanitation"
-            priority = "medium"
-            description = "Accumulated trash and solid waste overflowing on the street, causing unhygienic conditions."
-        elif hash_val == 6:
-            category = "Fallen trees"
-            dept = "Parks"
-            priority = "medium"
-            description = "A fallen tree or heavy branch is blocking the public sidewalk or roadway."
-        else:
-            category = "Illegal dumping"
-            dept = "Sanitation"
-            priority = "high"
-            description = "Unauthorized dumping of commercial or construction waste in a public zone."
+        try:
+            img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+            # Resize to speed up analysis
+            img_small = img.resize((50, 50))
+            pixels = list(img_small.getdata())
+            
+            green_count = 0
+            gray_count = 0
+            bright_count = 0
+            total = len(pixels)
+            
+            r_vals = [p[0] for p in pixels]
+            g_vals = [p[1] for p in pixels]
+            b_vals = [p[2] for p in pixels]
+            
+            r_mean = sum(r_vals) / total
+            g_mean = sum(g_vals) / total
+            b_mean = sum(b_vals) / total
+            
+            r_var = sum((x - r_mean) ** 2 for x in r_vals) / total
+            g_var = sum((x - g_mean) ** 2 for x in g_vals) / total
+            b_var = sum((x - b_mean) ** 2 for x in b_vals) / total
+            avg_var = (r_var + g_var + b_var) / 3
+            
+            for r, g, b in pixels:
+                if g > r + 12 and g > b + 12 and g > 50:
+                    green_count += 1
+                elif abs(r - g) < 20 and abs(g - b) < 20 and 40 < r < 140:
+                    gray_count += 1
+                elif r > 200 and g > 200 and b > 150:
+                    bright_count += 1
+            
+            # Categorize based on pixel distribution
+            if (green_count / total) > 0.12:
+                category = "Fallen trees"
+                dept = "Parks"
+                priority = "medium"
+                description = "A fallen tree or heavy branch is blocking the public sidewalk or roadway."
+            elif (gray_count / total) > 0.20:
+                category = "Potholes"
+                dept = "Roads"
+                priority = "high"
+                description = "A deep pothole or road surface depression detected on the asphalt roadway."
+            elif (bright_count / total) > 0.05 and r_mean < 110:
+                category = "Street lights"
+                dept = "Electricity"
+                priority = "medium"
+                description = "Street light bulb failure or exposed electrical wiring in this sector."
+            elif avg_var > 1000:
+                category = "Garbage"
+                dept = "Sanitation"
+                priority = "medium"
+                description = "Accumulated household waste, plastic packaging, and discarded items on the pathway."
+            else:
+                category = "Garbage"
+                dept = "Sanitation"
+                priority = "medium"
+                description = "Public grievance reported. Verification required."
+                
+            # If color variance is extremely low, it's likely a blank/dummy image (solid colors/plain document)
+            is_fake = avg_var < 300
+        except Exception as px_err:
+            logger.warning(f"Pixel analysis failed: {px_err}")
+            is_fake = True
 
     # Inspect audio transcript if present to adjust category
     if audio_transcript:
@@ -388,7 +407,7 @@ def run_local_image_fallback(image_bytes: bytes, audio_transcript: str = None, i
         "category": category,
         "description": description,
         "priority": priority,
-        "isFake": is_fake or (not matched),
+        "isFake": is_fake,
         "confidenceScore": 0.75,
         "department": dept
     }
