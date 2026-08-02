@@ -392,6 +392,7 @@ const SupervisorDashboard = () => {
                       <h4 className="font-bold text-xs uppercase text-slate-700 dark:text-slate-200 mt-2">
                         {t[lang]?.categories?.[item.category] || item.category}
                       </h4>
+                      <p className="text-[11px] text-slate-400 font-medium truncate max-w-[280px] mt-1">{item.description}</p>
                       <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate max-w-[280px]">{item.address}</p>
                     </div>
                     <ArrowRight className="w-4 h-4 text-slate-400" />
@@ -439,6 +440,7 @@ const SupervisorDashboard = () => {
                       <h4 className="font-bold text-xs uppercase text-slate-700 dark:text-slate-200 mt-2">
                         {t[lang]?.categories?.[item.category] || item.category}
                       </h4>
+                      <p className="text-[11px] text-slate-400 font-medium truncate max-w-[280px] mt-1">{item.description}</p>
                       <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate max-w-[280px]">{item.address}</p>
                     </div>
                     {item.status === 'assigned' ? (
