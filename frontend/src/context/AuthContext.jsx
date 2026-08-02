@@ -9,7 +9,8 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const API_URL = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
 
   // Configure global axios authorization
   useEffect(() => {
