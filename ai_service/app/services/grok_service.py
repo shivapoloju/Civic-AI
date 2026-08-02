@@ -419,3 +419,51 @@ def translate_text(text: str, target_lang: str) -> str:
     except Exception as e:
         logger.error(f"Grok Translation error: {e}")
         return text
+
+def generate_detailed_issue_text(category: str, description: str) -> str:
+    """
+    Generates a professional, detailed, structured description/report of the municipal issue.
+    """
+    api_key, base_url, model = get_client_config()
+    if not api_key:
+        return f"AI Analysis Report:\n- Category: {category}\n- Overview: {description}\n- Status: Pending manual inspection.\n- Note: This is an automatically generated local fallback analysis."
+
+    try:
+        prompt = f"""
+        Generate a professional, detailed municipal grievance report based on the following input:
+        Category: {category}
+        User Description: {description}
+
+        Structure the output with the following sections:
+        - **EXECUTIVE SUMMARY**: A formal summary of the issue.
+        - **POTENTIAL HAZARDS**: Public safety or health risks if unresolved.
+        - **RECOMMENDED ACTION**: Concrete steps for the field crews.
+
+        Keep it concise (100-150 words) and formal. Do not use generic filler words.
+        """
+        
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": "You are a professional city municipal engineer auditing civic issues."},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.2
+        }
+        
+        response = requests.post(base_url, headers=headers, json=payload, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            return data["choices"][0]["message"]["content"].strip()
+        else:
+            logger.error(f"Groq API error: {response.text}")
+            raise Exception("API returned non-200 status code")
+    except Exception as e:
+        logger.error(f"Error in generate_detailed_issue_text: {e}")
+        return f"AI Analysis Report:\n- Category: {category}\n- Overview: {description}\n- Status: AI generation failed; displaying input description."
+

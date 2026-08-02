@@ -71,10 +71,19 @@ exports.createComplaint = async (req, res) => {
     const imageUrlBefore = imageFile ? `/uploads/${imageFile.filename}` : null;
     const voiceUrl = voiceFile ? `/uploads/${voiceFile.filename}` : null;
 
+    // Generate AI detailed text about the issue
+    let aiDescription = null;
+    try {
+      aiDescription = await aiService.generateIssueDetails(category, description);
+    } catch (detailsError) {
+      console.warn('[AI Details Generation Error]', detailsError.message);
+    }
+
     const complaint = await Complaint.create({
       citizenId,
       category,
       description,
+      aiDescription,
       lat: Number(lat),
       lng: Number(lng),
       address: address || 'Auto-detected location coordinates',

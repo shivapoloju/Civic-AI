@@ -765,6 +765,14 @@ const AdminDashboard = () => {
                 <h4 className="font-bold uppercase tracking-wider text-slate-400">Description</h4>
                 <p className="text-slate-700 dark:text-slate-300 mt-1 leading-relaxed">{translatedDesc || selectedComplaint.description}</p>
               </div>
+              {selectedComplaint.aiDescription && (
+                <div className="border-t dark:border-slate-800/60 pt-3">
+                  <h4 className="font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1">
+                    <span>✨ AI Detailed Report</span>
+                  </h4>
+                  <p className="text-slate-300 mt-1 leading-relaxed font-mono text-[11px] whitespace-pre-line">{selectedComplaint.aiDescription}</p>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="font-bold uppercase tracking-wider text-slate-400">Reporter Details</h4>

@@ -98,6 +98,18 @@ def check_duplicates(request: DuplicateCheckRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Duplicate check failed: {str(e)}")
 
+class GenerateIssueDetailsRequest(BaseModel):
+    category: str
+    description: str
+
+@app.post("/ai/generate-issue-details")
+def generate_issue_details(request: GenerateIssueDetailsRequest):
+    try:
+        detailed_text = grok_service.generate_detailed_issue_text(request.category, request.description)
+        return {"detailedText": detailed_text}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)}")
+
 class ComplaintHistorySchema(BaseModel):
     id: str
     category: str

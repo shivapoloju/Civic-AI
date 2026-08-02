@@ -182,7 +182,7 @@ const boot = async () => {
     console.log('Relational Database connection established.');
     
     // Sync models
-    await sequelize.sync();
+    await sequelize.sync({ alter: true });
     console.log('SQL Schemas synchronized successfully.');
     
     // Seed

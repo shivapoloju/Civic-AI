@@ -314,3 +314,16 @@ exports.translateText = async (text, targetLang) => {
     return text;
   }
 };
+
+/**
+ * Generates a detailed audit description for a complaint based on its category and short description.
+ */
+exports.generateIssueDetails = async (category, description) => {
+  try {
+    const result = await callAIJsonService('/ai/generate-issue-details', { category, description });
+    return result.detailedText;
+  } catch (err) {
+    console.warn('[AI Details Generation Fallback] Using local structured heuristics.');
+    return `AI Analysis Report:\n- Category: ${category}\n- Overview: ${description}\n- Status: Pending manual inspection. (Local fallback generated)`;
+  }
+};

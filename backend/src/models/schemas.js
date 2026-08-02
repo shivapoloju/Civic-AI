@@ -181,6 +181,10 @@ const Complaint = sequelize.define('Complaint', {
   isFake: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
+  },
+  aiDescription: {
+    type: DataTypes.TEXT,
+    allowNull: true
   }
 }, {
   timestamps: true,
