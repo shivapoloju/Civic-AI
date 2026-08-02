@@ -177,6 +177,10 @@ const Complaint = sequelize.define('Complaint', {
   voiceUrl: {
     type: DataTypes.STRING,
     allowNull: true
+  },
+  isFake: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   }
 }, {
   timestamps: true,

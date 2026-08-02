@@ -250,9 +250,16 @@ const SupervisorDashboard = () => {
                     className="p-4 rounded-xl border dark:border-slate-800 border-slate-200 bg-white/40 dark:bg-darkbg-800/20 hover:scale-[1.01] transition shadow-sm cursor-pointer flex items-center justify-between"
                   >
                     <div>
-                      <span className={`px-2 py-0.5 rounded text-[8px] font-bold text-white uppercase ${
-                        item.priority === 'critical' ? 'bg-red-500 animate-pulse' : item.priority === 'high' ? 'bg-orange-500' : 'bg-blue-500'
-                      }`}>{item.priority}</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`px-2 py-0.5 rounded text-[8px] font-bold text-white uppercase ${
+                          item.priority === 'critical' ? 'bg-red-500 animate-pulse' : item.priority === 'high' ? 'bg-orange-500' : 'bg-blue-500'
+                        }`}>{item.priority}</span>
+                        {item.isFake && (
+                          <span className="px-2 py-0.5 rounded text-[8px] font-extrabold bg-red-500/20 text-red-500 border border-red-500/30 animate-pulse uppercase tracking-wider">
+                            ⚠️ Flagged: Dummy Image
+                          </span>
+                        )}
+                      </div>
                       <h4 className="font-bold text-xs uppercase text-slate-700 dark:text-slate-200 mt-2">{item.category}</h4>
                       <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate max-w-[280px]">{item.address}</p>
                     </div>

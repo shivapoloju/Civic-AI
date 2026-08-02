@@ -228,11 +228,12 @@ def run_yolov8_classification(image_bytes: bytes) -> dict:
             priority = "medium"
             description = f"AI flagged a potential civic hazard relating to the detected object '{detected_classes[0]}' in this area."
             
+        is_municipal = has_vehicle or has_road_sign or has_water_source or has_trash or has_vegetation
         return {
             "category": category,
             "description": description,
             "priority": priority,
-            "isFake": False,
+            "isFake": not is_municipal,
             "confidenceScore": 0.85,
             "department": dept
         }
@@ -387,7 +388,7 @@ def run_local_image_fallback(image_bytes: bytes, audio_transcript: str = None, i
         "category": category,
         "description": description,
         "priority": priority,
-        "isFake": is_fake,
+        "isFake": is_fake or (not matched),
         "confidenceScore": 0.75,
         "department": dept
     }

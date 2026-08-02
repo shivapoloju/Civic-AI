@@ -48,9 +48,7 @@ exports.createComplaint = async (req, res) => {
     // Call AI analyzer (Gemini extraction or local heuristical engine)
     const analysis = await aiService.analyzeComplaint(imageFile, voiceFile, lat, lng);
 
-    if (analysis.isFake && analysis.confidenceScore > 0.9) {
-      return res.status(400).json({ error: 'Fake or highly edited image detected. Request rejected.' });
-    }
+    const isFake = analysis.isFake || false;
 
     // Map AI analysis variables to database fields
     const category = manualCategory || analysis.category;
@@ -84,7 +82,8 @@ exports.createComplaint = async (req, res) => {
       priority,
       departmentId: dept.id,
       imageUrlBefore,
-      voiceUrl
+      voiceUrl,
+      isFake
     });
 
     await logActivity('Complaint', complaint.id, 'CREATED', citizenId, { category, priority });
@@ -92,72 +91,74 @@ exports.createComplaint = async (req, res) => {
 
     // AI Spatial Auto-Dispatch Agent: Match closest available worker from matching department
     try {
-      const availableWorkers = await Worker.findAll({
-        where: {
-          departmentId: dept.id,
-          status: 'available'
-        },
-        include: [{ model: User }]
-      });
+      if (!isFake) {
+        const availableWorkers = await Worker.findAll({
+          where: {
+            departmentId: dept.id,
+            status: 'available'
+          },
+          include: [{ model: User }]
+        });
 
-      if (availableWorkers.length > 0) {
-        let closestWorker = null;
-        let minDistance = Infinity;
+        if (availableWorkers.length > 0) {
+          let closestWorker = null;
+          let minDistance = Infinity;
 
-        const getDistance = (lat1, lon1, lat2, lon2) => {
-          const R = 6371; // km
-          const dLat = (lat2 - lat1) * Math.PI / 180;
-          const dLon = (lon2 - lon1) * Math.PI / 180;
-          const a = 
-            Math.sin(dLat/2) * Math.sin(dLat/2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-            Math.sin(dLon/2) * Math.sin(dLon/2);
-          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-          return R * c;
-        };
+          const getDistance = (lat1, lon1, lat2, lon2) => {
+            const R = 6371; // km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+              Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+          };
 
-        for (const worker of availableWorkers) {
-          if (worker.lat !== null && worker.lng !== null) {
-            const dist = getDistance(Number(lat), Number(lng), Number(worker.lat), Number(worker.lng));
-            if (dist < minDistance) {
-              minDistance = dist;
-              closestWorker = worker;
+          for (const worker of availableWorkers) {
+            if (worker.lat !== null && worker.lng !== null) {
+              const dist = getDistance(Number(lat), Number(lng), Number(worker.lat), Number(worker.lng));
+              if (dist < minDistance) {
+                minDistance = dist;
+                closestWorker = worker;
+              }
             }
           }
-        }
 
-        if (closestWorker) {
-          await Assignment.create({
-            complaintId: complaint.id,
-            workerId: closestWorker.id,
-            status: 'assigned'
-          });
+          if (closestWorker) {
+            await Assignment.create({
+              complaintId: complaint.id,
+              workerId: closestWorker.id,
+              status: 'assigned'
+            });
 
-          complaint.status = 'assigned';
-          await complaint.save();
+            complaint.status = 'assigned';
+            await complaint.save();
 
-          closestWorker.status = 'busy';
-          await closestWorker.save();
+            closestWorker.status = 'busy';
+            await closestWorker.save();
 
-          await logActivity('Complaint', complaint.id, 'AUTO_ASSIGNED_BY_AI', null, { 
-            workerId: closestWorker.id, 
-            workerName: closestWorker.User?.name,
-            distanceKm: minDistance.toFixed(2)
-          });
+            await logActivity('Complaint', complaint.id, 'AUTO_ASSIGNED_BY_AI', null, { 
+              workerId: closestWorker.id, 
+              workerName: closestWorker.User?.name,
+              distanceKm: minDistance.toFixed(2)
+            });
 
-          await createNotification(
-            citizenId,
-            'AI Auto-Dispatch Worker',
-            `AI has automatically matched and dispatched worker ${closestWorker.User?.name} (located ${minDistance.toFixed(2)} km away) to address your report.`,
-            'STATUS'
-          );
+            await createNotification(
+              citizenId,
+              'AI Auto-Dispatch Worker',
+              `AI has automatically matched and dispatched worker ${closestWorker.User?.name} (located ${minDistance.toFixed(2)} km away) to address your report.`,
+              'STATUS'
+            );
 
-          await createNotification(
-            closestWorker.userId,
-            'Auto Task Assignment',
-            `AI has automatically assigned you complaint ID: ${complaint.id.substring(0, 8)} (${complaint.category}) located ${minDistance.toFixed(2)} km away.`,
-            'ASSIGNMENT'
-          );
+            await createNotification(
+              closestWorker.userId,
+              'Auto Task Assignment',
+              `AI has automatically assigned you complaint ID: ${complaint.id.substring(0, 8)} (${complaint.category}) located ${minDistance.toFixed(2)} km away.`,
+              'ASSIGNMENT'
+            );
+          }
         }
       }
     } catch (assignError) {
