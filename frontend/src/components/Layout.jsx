@@ -1,27 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
-import { Bell, LogOut, Moon, Sun, User, MapPin, Award, Shield, Hammer, ClipboardCheck } from 'lucide-react';
+import { Bell, LogOut, User, MapPin, Award, Shield, Hammer, ClipboardCheck } from 'lucide-react';
 import axios from 'axios';
 
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
   const { liveUpdate } = useSocket();
-  const [darkMode, setDarkMode] = useState(localStorage.getItem('theme') === 'dark');
   const [notifications, setNotifications] = useState([]);
   const [showNotifMenu, setShowNotifMenu] = useState(false);
+  const [lang, setLang] = useState(localStorage.getItem('civic_lang') || 'en');
+
+  const handleLangChange = (l) => {
+    setLang(l);
+    localStorage.setItem('civic_lang', l);
+    window.dispatchEvent(new Event('civic_lang_changed'));
+  };
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
   useEffect(() => {
-    if (darkMode) {
-      document.body.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.body.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [darkMode]);
+    document.body.classList.add('dark');
+    localStorage.setItem('theme', 'dark');
+  }, []);
 
   useEffect(() => {
     fetchNotifications();
@@ -95,15 +96,18 @@ const Layout = ({ children }) => {
               <span>{user.civicPoints} Civic Points</span>
             </div>
           )}
-
-          {/* Theme Switcher */}
-          <button 
-            onClick={() => setDarkMode(!darkMode)}
-            className="p-2 rounded-xl dark:bg-darkbg-800 bg-slate-100 hover:scale-105 border dark:border-slate-700"
-            title="Toggle theme"
-          >
-            {darkMode ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-slate-600" />}
-          </button>
+          {/* Language Selector */}
+          <div className="flex items-center gap-1.5">
+            <select 
+              value={lang} 
+              onChange={e => handleLangChange(e.target.value)} 
+              className="bg-slate-100 dark:bg-darkbg-800 border dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-700 dark:text-slate-300 font-bold focus:outline-none"
+            >
+              <option value="en">English (EN)</option>
+              <option value="hi">हिन्दी (HI)</option>
+              <option value="te">తెలుగు (TE)</option>
+            </select>
+          </div>
 
           {/* Notifications Center */}
           <div className="relative">

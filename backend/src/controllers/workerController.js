@@ -1,6 +1,74 @@
 const { Worker, Assignment, Complaint, User } = require('../models/schemas');
 const { logActivity, createNotification } = require('../services/mongoService');
 
+// Helper to automatically assign the oldest pending complaint in the department to this worker
+async function autoAssignPendingComplaint(worker) {
+  try {
+    const oldestComplaint = await Complaint.findOne({
+      where: {
+        departmentId: worker.departmentId,
+        status: 'raised',
+        isFake: false
+      },
+      order: [['createdAt', 'ASC']]
+    });
+
+    if (oldestComplaint) {
+      await Assignment.create({
+        complaintId: oldestComplaint.id,
+        workerId: worker.id,
+        status: 'assigned',
+        isAutoAssigned: true
+      });
+
+      oldestComplaint.status = 'assigned';
+      await oldestComplaint.save();
+
+      worker.status = 'busy';
+      await worker.save();
+
+      // Log activity
+      await logActivity('Complaint', oldestComplaint.id, 'AUTO_ASSIGNED_ON_WORKER_AVAILABLE', 'SYSTEM', { 
+        workerId: worker.id 
+      });
+
+      // Notify citizen
+      await createNotification(
+        oldestComplaint.citizenId,
+        'Worker Auto-Dispatched',
+        `A municipal crew member is automatically assigned to resolve your complaint.`,
+        'STATUS'
+      );
+
+      // Notify worker
+      await createNotification(
+        worker.userId,
+        'Auto Task Assignment',
+        `You have been automatically assigned a new complaint in your department: ${oldestComplaint.category}.`,
+        'ASSIGNMENT'
+      );
+
+      // Notify socket rooms
+      if (global.io) {
+        global.io.emit('complaint_status_change', {
+          id: oldestComplaint.id,
+          status: 'assigned'
+        });
+        global.io.emit('worker_location_update', {
+          workerId: worker.id,
+          status: 'busy',
+          lat: worker.lat,
+          lng: worker.lng
+        });
+      }
+      return true;
+    }
+  } catch (err) {
+    console.error('Error in autoAssignPendingComplaint:', err);
+  }
+  return false;
+}
+
 // Get worker's current active tasks
 exports.getTasks = async (req, res) => {
   try {
@@ -41,6 +109,11 @@ exports.updateLocation = async (req, res) => {
 
     await worker.save();
 
+    // Trigger auto assignment if worker marked available
+    if (status === 'available') {
+      await autoAssignPendingComplaint(worker);
+    }
+
     // Notify supervisors or dispatch room of position update (realtime Map tracking)
     if (global.io) {
       global.io.emit('worker_location_update', {
@@ -78,6 +151,11 @@ exports.updateTaskStatus = async (req, res) => {
     const complaint = assignment.Complaint || assignment.complaint;
     let complaintStatus = complaint.status;
 
+    const worker = await Worker.findOne({ where: { id: assignment.workerId } });
+    if (!worker) {
+      return res.status(404).json({ error: 'Worker profile not found.' });
+    }
+
     // Timeline rules mapping
     if (status === 'accepted') {
       assignment.status = 'accepted';
@@ -108,6 +186,13 @@ exports.updateTaskStatus = async (req, res) => {
     await assignment.save();
     complaint.status = complaintStatus;
     await complaint.save();
+
+    // Reset worker status back to available if completing the task
+    if (status === 'completed') {
+      worker.status = 'available';
+      await worker.save();
+      await autoAssignPendingComplaint(worker);
+    }
 
     // Log & notify
     await logActivity('Complaint', complaint.id, `WORKER_${status.toUpperCase()}`, req.user.id);

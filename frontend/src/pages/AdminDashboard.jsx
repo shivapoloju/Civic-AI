@@ -4,12 +4,89 @@ import Layout from '../components/Layout';
 import Timeline from '../components/Timeline';
 import { Shield, Users, Server, ClipboardList, PlusCircle, UserCog, Activity, ListOrdered, ChevronDown, ChevronUp } from 'lucide-react';
 
+const t = {
+  en: {
+    categories: {
+      "Potholes": "Potholes",
+      "Water leakage": "Water leakage",
+      "Street lights": "Street lights",
+      "Open manholes": "Open manholes",
+      "Drainage": "Drainage",
+      "Fallen trees": "Fallen trees",
+      "Illegal dumping": "Illegal dumping",
+      "Garbage": "Garbage"
+    }
+  },
+  hi: {
+    categories: {
+      "Potholes": "सड़क के गड्ढे",
+      "Water leakage": "पानी का रिसाव",
+      "Street lights": "स्ट्रीट लाइट",
+      "Open manholes": "खुले मैनहोल",
+      "Drainage": "जल निकासी",
+      "Fallen trees": "गिरे हुए पेड़",
+      "Illegal dumping": "अवैध डंपिंग",
+      "Garbage": "कचरा"
+    }
+  },
+  te: {
+    categories: {
+      "Potholes": "రోడ్డు గుంతలు",
+      "Water leakage": "నీటి లీకేజీ",
+      "Street lights": "వీధి దీపాలు",
+      "Open manholes": "తెరిచిన మ్యాన్‌హోల్స్",
+      "Drainage": "డ్రైనేజీ",
+      "Fallen trees": "కూలిపోయిన చెట్లు",
+      "Illegal dumping": "అక్రమ డంపింగ్",
+      "Garbage": "చెత్త"
+    }
+  }
+};
+
 const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [complaints, setComplaints] = useState([]);
   const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [lang, setLang] = useState(localStorage.getItem('civic_lang') || 'en');
+  const [translatedDesc, setTranslatedDesc] = useState('');
+
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+  useEffect(() => {
+    const handleLangUpdate = () => {
+      setLang(localStorage.getItem('civic_lang') || 'en');
+    };
+    window.addEventListener('civic_lang_changed', handleLangUpdate);
+    return () => window.removeEventListener('civic_lang_changed', handleLangUpdate);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedComplaint?.description) {
+      setTranslatedDesc('');
+      return;
+    }
+    
+    if (lang === 'en') {
+      setTranslatedDesc(selectedComplaint.description);
+      return;
+    }
+
+    const translate = async () => {
+      try {
+        const res = await axios.post(`${API_URL}/complaints/translate`, {
+          text: selectedComplaint.description,
+          targetLang: lang
+        });
+        setTranslatedDesc(res.data.translatedText);
+      } catch (err) {
+        setTranslatedDesc(selectedComplaint.description);
+      }
+    };
+
+    translate();
+  }, [selectedComplaint, lang]);
 
   // Accordion toggle states
   const [showUsersBoard, setShowUsersBoard] = useState(false);
@@ -40,8 +117,6 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
   useEffect(() => {
     fetchAdminData();
@@ -190,16 +265,31 @@ const AdminDashboard = () => {
   return (
     <Layout>
       {/* Live Metrics Deck */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
         
-        {/* Received */}
+        {/* Unassigned */}
         <div className="glass-panel p-6 rounded-2xl border dark:border-slate-800 flex justify-between items-center shadow bg-gradient-to-br from-brand-500/10 to-brand-500/5">
           <div>
-            <span className="block text-[10px] uppercase tracking-wider text-slate-400 font-extrabold">Total Received</span>
-            <span className="text-3xl font-black text-brand-500 mt-1 block">{complaints.length}</span>
+            <span className="block text-[10px] uppercase tracking-wider text-slate-400 font-extrabold">Unassigned</span>
+            <span className="text-3xl font-black text-brand-500 mt-1 block">
+              {complaints.filter(c => c.status === 'raised').length}
+            </span>
           </div>
           <div className="p-3 bg-brand-500/10 text-brand-500 rounded-xl">
             <ClipboardList className="w-6 h-6" />
+          </div>
+        </div>
+
+        {/* Active */}
+        <div className="glass-panel p-6 rounded-2xl border dark:border-slate-800 flex justify-between items-center shadow bg-gradient-to-br from-blue-500/10 to-blue-500/5">
+          <div>
+            <span className="block text-[10px] uppercase tracking-wider text-slate-400 font-extrabold">Active</span>
+            <span className="text-3xl font-black text-blue-500 mt-1 block">
+              {complaints.filter(c => c.status === 'assigned' || c.status === 'worker_assigned').length}
+            </span>
+          </div>
+          <div className="p-3 bg-blue-500/10 text-blue-500 rounded-xl">
+            <Activity className="w-6 h-6" />
           </div>
         </div>
 
@@ -208,7 +298,7 @@ const AdminDashboard = () => {
           <div>
             <span className="block text-[10px] uppercase tracking-wider text-slate-400 font-extrabold">In Progress</span>
             <span className="text-3xl font-black text-amber-500 mt-1 block">
-              {complaints.filter(c => c.status !== 'closed' && c.status !== 'raised').length}
+              {complaints.filter(c => c.status === 'worker_reached' || c.status === 'work_started' || c.status === 'citizen_rejected').length}
             </span>
           </div>
           <div className="p-3 bg-amber-500/10 text-amber-500 rounded-xl">
@@ -216,12 +306,12 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Solved */}
+        {/* Completed */}
         <div className="glass-panel p-6 rounded-2xl border dark:border-slate-800 flex justify-between items-center shadow bg-gradient-to-br from-emerald-500/10 to-emerald-500/5">
           <div>
-            <span className="block text-[10px] uppercase tracking-wider text-slate-400 font-extrabold">Solved & Closed</span>
+            <span className="block text-[10px] uppercase tracking-wider text-slate-400 font-extrabold">Completed</span>
             <span className="text-3xl font-black text-emerald-500 mt-1 block">
-              {complaints.filter(c => c.status === 'closed').length}
+              {complaints.filter(c => c.status === 'completed' || c.status === 'citizen_verified' || c.status === 'closed').length}
             </span>
           </div>
           <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-xl">
@@ -515,7 +605,7 @@ const AdminDashboard = () => {
                   >
                     <div className="space-y-1 max-w-[70%]">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 text-[11px]">{c.category}</span>
+                        <span className="font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 text-[11px]">{t[lang]?.categories?.[c.category] || c.category}</span>
                         <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold text-white uppercase ${
                           c.priority === 'critical' ? 'bg-red-500 animate-pulse' : c.priority === 'high' ? 'bg-orange-500' : 'bg-blue-500'
                         }`}>{c.priority}</span>
@@ -641,7 +731,7 @@ const AdminDashboard = () => {
 
             <div className="flex justify-between items-center border-b dark:border-slate-800 pb-3 mb-4">
               <div>
-                <h3 className="font-extrabold text-base uppercase tracking-wider text-brand-500">{selectedComplaint.category}</h3>
+                <h3 className="font-extrabold text-base uppercase tracking-wider text-brand-500">{t[lang]?.categories?.[selectedComplaint.category] || selectedComplaint.category}</h3>
                 <p className="text-[10px] text-slate-400">ID: {selectedComplaint.id}</p>
               </div>
               <span className={`px-2.5 py-0.5 rounded text-[9px] font-bold text-white uppercase ${
@@ -671,7 +761,7 @@ const AdminDashboard = () => {
             <div className="space-y-3 mb-6 bg-slate-50 dark:bg-darkbg-800/40 p-4 rounded-xl border dark:border-slate-800 text-xs">
               <div>
                 <h4 className="font-bold uppercase tracking-wider text-slate-400">Description</h4>
-                <p className="text-slate-700 dark:text-slate-300 mt-1 leading-relaxed">{selectedComplaint.description}</p>
+                <p className="text-slate-700 dark:text-slate-300 mt-1 leading-relaxed">{translatedDesc || selectedComplaint.description}</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

@@ -110,6 +110,11 @@ const AppContent = () => {
 };
 
 function App() {
+  React.useEffect(() => {
+    document.body.classList.add('dark');
+    localStorage.setItem('theme', 'dark');
+  }, []);
+
   return (
     <AuthProvider>
       <SocketProvider>

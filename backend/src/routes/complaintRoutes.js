@@ -14,5 +14,6 @@ router.post('/analyze', authMiddleware, complaintUploads, complaintController.an
 router.get('/', authMiddleware, complaintController.listComplaints);
 router.get('/:id', authMiddleware, complaintController.getComplaint);
 router.post('/rate', authMiddleware, authorize('citizen', 'admin'), complaintController.rateAndClose);
+router.post('/translate', authMiddleware, complaintController.translateText);
 
 module.exports = router;

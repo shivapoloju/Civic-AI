@@ -4,11 +4,11 @@ from pydantic import BaseModel
 from typing import List, Optional
 import json
 
-from app.services import gemini_service, analysis_service
+from app.services import grok_service, analysis_service
 
 app = FastAPI(
     title="CivicAI AI Backend Service",
-    description="FastAPI service handling Gemini multimodal queries, duplicate alerts, and maintenance forecasts",
+    description="FastAPI service handling Grok Vision multimodal queries, duplicate alerts, and maintenance forecasts",
     version="1.0.0"
 )
 
@@ -42,15 +42,15 @@ async def analyze_complaint(
         
         if voice:
             voice_bytes = await voice.read()
-            # Simple speech mock (multimodal Gemini accepts audio, or mock fallback)
+            # Simple speech mock (multimodal Grok Vision accepts audio, or mock fallback)
             # In mock environment we return a predefined string
             transcript = "Potholes on the road causing major traffic jam."
 
         if not image_bytes and not voice_bytes:
             raise HTTPException(status_code=400, detail="Must provide at least one media file (image or audio)")
 
-        # Call Gemini service
-        analysis = gemini_service.analyze_complaint_image(
+        # Call Grok service
+        analysis = grok_service.analyze_complaint_image(
             image_bytes=image_bytes if image_bytes else b"",
             audio_transcript=transcript,
             image_filename=image.filename if image else None
@@ -70,7 +70,7 @@ async def verify_repair(
 ):
     try:
         after_bytes = await imageAfter.read()
-        result = gemini_service.verify_repair_comparison(imageBeforeUrl, after_bytes)
+        result = grok_service.verify_repair_comparison(imageBeforeUrl, after_bytes)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Before/After verification failed: {str(e)}")
@@ -116,6 +116,18 @@ def predictive_maintenance(request: PredictiveRequest):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Predictive analysis failed: {str(e)}")
+
+class TranslateRequest(BaseModel):
+    text: str
+    target_lang: str
+
+@app.post("/ai/translate")
+def translate_text_endpoint(request: TranslateRequest):
+    try:
+        translated = grok_service.translate_text(request.text, request.target_lang)
+        return {"translatedText": translated}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Translation failed: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

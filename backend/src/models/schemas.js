@@ -211,6 +211,10 @@ const Assignment = sequelize.define('Assignment', {
   status: {
     type: DataTypes.ENUM('assigned', 'accepted', 'working', 'completed'),
     defaultValue: 'assigned'
+  },
+  isAutoAssigned: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   }
 }, {
   timestamps: true

@@ -1,37 +1,40 @@
 import io
 import json
 import logging
+import base64
+import requests
 from PIL import Image
-import google.generativeai as genai
 from app.config import settings
-
-try:
-    from ultralytics import YOLO
-    YOLO_AVAILABLE = True
-except ImportError:
-    YOLO_AVAILABLE = False
 
 # Configure logger
 logger = logging.getLogger(__name__)
 
-# Initialize Gemini if key is provided
-if settings.GEMINI_API_KEY:
-    logger.info("Initializing Google Generative AI (Gemini) Client...")
-    genai.configure(api_key=settings.GEMINI_API_KEY)
+def get_client_config():
+    if settings.GROQ_API_KEY:
+        return settings.GROQ_API_KEY, "https://api.groq.com/openai/v1/chat/completions", "qwen/qwen3.6-27b"
+    elif settings.XAI_API_KEY:
+        return settings.XAI_API_KEY, "https://api.x.ai/v1/chat/completions", "grok-2-vision-latest"
+    return None, None, None
+
+# Initialize Grok/Groq status log
+api_key, base_url, model = get_client_config()
+if api_key:
+    logger.info(f"Initializing AI Vision client with model: {model}...")
 else:
-    logger.warning("No GEMINI_API_KEY found. Running in local mock mode.")
+    logger.warning("No XAI_API_KEY or GROQ_API_KEY found. Running in local mock/pixel-analysis fallback mode.")
 
 def analyze_complaint_image(image_bytes: bytes, audio_transcript: str = None, image_filename: str = None) -> dict:
     """
-    Classifies image category, writes complaint description, assigns priority and department.
+    Classifies image category, writes complaint description, assigns priority and department using AI Vision.
     """
-    if not settings.GEMINI_API_KEY:
+    api_key, base_url, model = get_client_config()
+    if not api_key:
         return run_local_image_fallback(image_bytes, audio_transcript, image_filename)
         
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        image = Image.open(io.BytesIO(image_bytes))
-
+        # Convert image bytes to base64
+        base64_image = base64.b64encode(image_bytes).decode('utf-8')
+        
         prompt = """
         Analyze this reported civic grievance image. Identify the issue.
         Respond ONLY in raw JSON format (do not wrap in markdown ```json or similar).
@@ -39,27 +42,53 @@ def analyze_complaint_image(image_bytes: bytes, audio_transcript: str = None, im
         - "category": Choose one of (Potholes, Garbage, Water leakage, Street lights, Open manholes, Drainage, Fallen trees, Illegal dumping)
         - "description": Write a formal, detailed description of the issue suitable for city authorities.
         - "priority": Choose one of (low, medium, high, critical) depending on public safety hazard.
-        - "isFake": Boolean (true if the image is highly edited, photoshopped, or looks like a stock internet photo).
+        - "isFake": Boolean (true if the image is highly edited, photoshopped, blank screen, solid color, or a dummy/no-issue photo).
         - "confidenceScore": Float between 0.0 and 1.0 representing classification accuracy.
         - "department": The department responsible. Map category to one of: (Roads, Water, Sanitation, Electricity, Traffic, Parks).
-
-        Example output:
-        {
-          "category": "Potholes",
-          "description": "A deep pothole of approx 2ft diameter located near the crossroad. Poses high accident risks to two-wheelers.",
-          "priority": "high",
-          "isFake": false,
-          "confidenceScore": 0.95,
-          "department": "Roads"
-        }
+        - "explanation": A short explanation of why the AI classified the issue this way based on image visual features.
         """
         
-        contents = [image, prompt]
+        user_content = [
+            {
+                "type": "text",
+                "text": prompt
+            },
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/jpeg;base64,{base64_image}"
+                }
+            }
+        ]
+        
         if audio_transcript:
-            contents.append(f"Additional voice audio description recorded by citizen: '{audio_transcript}'")
+            user_content.append({
+                "type": "text",
+                "text": f"Additional voice audio description recorded by citizen: '{audio_transcript}'"
+            })
 
-        response = model.generate_content(contents)
-        text = response.text.strip()
+        response = requests.post(
+            base_url,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}"
+            },
+            json={
+                "model": model,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": user_content
+                    }
+                ],
+                "response_format": { "type": "json_object" }
+            },
+            timeout=15
+        )
+        
+        response.raise_for_status()
+        res_json = response.json()
+        text = res_json['choices'][0]['message']['content'].strip()
         
         # Clean up any potential markdown wraps
         if text.startswith("```json"):
@@ -70,14 +99,15 @@ def analyze_complaint_image(image_bytes: bytes, audio_transcript: str = None, im
 
         return json.loads(text)
     except Exception as e:
-        logger.error(f"Gemini analysis error: {e}")
-        return run_local_image_fallback(image_bytes, audio_transcript)
+        logger.error(f"Grok Vision analysis error: {e}")
+        return run_local_image_fallback(image_bytes, audio_transcript, image_filename)
 
 def verify_repair_comparison(image_before_url: str, image_after_bytes: bytes) -> dict:
     """
-    Compares the original issue image with the repair picture submitted by the worker.
+    Compares the original issue image with the repair picture submitted by the worker using Grok Vision.
     """
-    if not settings.GEMINI_API_KEY:
+    api_key, base_url, model = get_client_config()
+    if not api_key:
         return {
             "confidenceScore": 0.88,
             "repairApproved": True,
@@ -85,13 +115,13 @@ def verify_repair_comparison(image_before_url: str, image_after_bytes: bytes) ->
         }
         
     try:
-        import requests
-        # Fetch the before image (handled via express host static files)
+        # Fetch the before image
         before_resp = requests.get(image_before_url, timeout=5)
-        before_img = Image.open(io.BytesIO(before_resp.content))
-        after_img = Image.open(io.BytesIO(image_after_bytes))
+        before_resp.raise_for_status()
+        
+        base64_before = base64.b64encode(before_resp.content).decode('utf-8')
+        base64_after = base64.b64encode(image_after_bytes).decode('utf-8')
 
-        model = genai.GenerativeModel('gemini-1.5-flash')
         prompt = """
         Compare these two photos of the same location.
         Photo 1 (Before): Shows a reported civic hazard/grievance (e.g. garbage pile, pothole, broken pipe).
@@ -106,8 +136,45 @@ def verify_repair_comparison(image_before_url: str, image_after_bytes: bytes) ->
         }
         """
 
-        response = model.generate_content([before_img, after_img, prompt])
-        text = response.text.strip()
+        response = requests.post(
+            base_url,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}"
+            },
+            json={
+                "model": model,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": prompt
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{base64_before}"
+                                }
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{base64_after}"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "response_format": { "type": "json_object" }
+            },
+            timeout=15
+        )
+        
+        response.raise_for_status()
+        res_json = response.json()
+        text = res_json['choices'][0]['message']['content'].strip()
         
         if text.startswith("```json"):
             text = text.replace("```json", "", 1)
@@ -117,140 +184,17 @@ def verify_repair_comparison(image_before_url: str, image_after_bytes: bytes) ->
 
         return json.loads(text)
     except Exception as e:
-        logger.error(f"Gemini verification error: {e}")
+        logger.error(f"Grok Vision verification error: {e}")
         return {
             "confidenceScore": 0.80,
             "repairApproved": True,
-            "feedback": f"Gemini connection failed ({e}). Defaulting to fallback approval."
+            "feedback": f"Grok Vision connection failed ({e}). Defaulting to fallback approval."
         }
-
-def run_yolov8_classification(image_bytes: bytes) -> dict:
-    """
-    Runs YOLOv8 model locally to classify the image and returns category mapping if objects are detected.
-    """
-    if not YOLO_AVAILABLE:
-        logger.info("YOLOv8 is not installed. Skipping YOLO classification.")
-        return None
-        
-    try:
-        # Load lightweight YOLOv8 nano model (will auto-download yolov8n.pt if not present locally)
-        model = YOLO('yolov8n.pt')
-        
-        # Parse image from bytes
-        img = Image.open(io.BytesIO(image_bytes))
-        
-        # Perform object detection inference
-        results = model(img)
-        
-        # Gather all detected class names
-        detected_classes = []
-        for r in results:
-            for c in r.boxes.cls:
-                class_name = model.names[int(c)]
-                detected_classes.append(class_name.lower())
-                
-        logger.info(f"YOLOv8 detected objects: {detected_classes}")
-        
-        if not detected_classes:
-            return None
-            
-        # Initialize default categories
-        category = "Garbage"
-        dept = "Sanitation"
-        priority = "medium"
-        description = "Public issue reported via citizen application."
-
-        # Map detected COCO classes to our platform's municipal categories
-        # Category options: Potholes, Garbage, Water leakage, Street lights, Open manholes, Drainage, Fallen trees, Illegal dumping
-        has_vehicle = any(cls in detected_classes for cls in ["car", "truck", "bus", "motorcycle", "bicycle"])
-        has_road_sign = any(cls in detected_classes for cls in ["stop sign", "traffic light"])
-        has_water_source = any(cls in detected_classes for cls in ["fire hydrant", "sink", "toilet"])
-        has_trash = any(cls in detected_classes for cls in ["cup", "bottle", "bowl", "banana", "apple", "sandwich", "backpack", "suitcase", "handbag", "umbrella"])
-        has_vegetation = any(cls in detected_classes for cls in ["potted plant", "bench", "chair"])
-
-        if has_trash:
-            category = "Garbage"
-            dept = "Sanitation"
-            priority = "medium"
-            
-            if has_vehicle:
-                category = "Illegal dumping"
-                description = "Illegal dumping of household waste, bags, and commercial garbage bags next to active street lanes."
-                priority = "high"
-            else:
-                description = "Unattended garbage accumulation and solid waste piles causing unhygienic conditions on the pathway."
-
-        elif has_water_source:
-            category = "Water leakage"
-            dept = "Water"
-            priority = "high"
-            
-            if has_trash:
-                description = "Water pipeline rupture near garbage dump area, leading to contaminated pooling on the sidewalk."
-                priority = "critical"
-            else:
-                description = "Municipal water supply line leak or open hydrant causing clean water loss and local street flooding."
-
-        elif has_vehicle or has_road_sign:
-            category = "Potholes"
-            dept = "Roads"
-            priority = "high"
-            
-            if has_vehicle and has_water_source:
-                description = "Damaged road segment with significant surface bumps and deep potholes. Water is pooling in road depressions, creating a safety hazard for passing vehicles."
-                priority = "critical"
-            elif has_vehicle:
-                description = "Damaged road section showing prominent bumps and cracks, affecting ongoing vehicle traffic flow."
-            elif "traffic light" in detected_classes:
-                category = "Street lights"
-                dept = "Electricity"
-                priority = "medium"
-                description = "Non-functional street lighting or traffic signal failure, reducing night visibility in this sector."
-            else:
-                description = "Asphalt road distress with visible surface irregularities, bumps, and warning signs."
-
-        elif has_vegetation:
-            category = "Fallen trees"
-            dept = "Parks"
-            priority = "medium"
-            
-            if has_road_sign:
-                description = "Fallen tree branches or overgrown plants blocking traffic regulatory signs on the street side."
-                priority = "high"
-            else:
-                description = "Fallen branches or botanical debris obstructing pedestrian movement on the public walkway."
-                description = "Fallen branches or botanical debris obstructing pedestrian movement on the public walkway."
-                
-        else:
-            # Fallback within YOLO detections
-            category = "Garbage"
-            dept = "Sanitation"
-            priority = "medium"
-            description = f"AI flagged a potential civic hazard relating to the detected object '{detected_classes[0]}' in this area."
-            
-        is_municipal = has_vehicle or has_road_sign or has_water_source or has_trash or has_vegetation
-        return {
-            "category": category,
-            "description": description,
-            "priority": priority,
-            "isFake": not is_municipal,
-            "confidenceScore": 0.85,
-            "department": dept
-        }
-    except Exception as e:
-        logger.warning(f"YOLOv8 inference failed: {e}. Falling back to dynamic checksum classifier.")
-        return None
 
 def run_local_image_fallback(image_bytes: bytes, audio_transcript: str = None, image_filename: str = None) -> dict:
     """
-    Fallback mock analyzer in case Gemini API keys are missing.
+    Fallback mock analyzer in case Grok Vision API keys are missing.
     """
-    # Proactively check if YOLOv8 can detect objects in the image
-    yolo_result = run_yolov8_classification(image_bytes)
-    if yolo_result:
-        logger.info(f"YOLOv8 successfully identified incident: {yolo_result['category']}")
-        return yolo_result
-
     logger.info("Running local fallback classifier...")
     try:
         img = Image.open(io.BytesIO(image_bytes))
@@ -418,5 +362,60 @@ def run_local_image_fallback(image_bytes: bytes, audio_transcript: str = None, i
         "priority": priority,
         "isFake": is_fake,
         "confidenceScore": 0.75,
-        "department": dept
+        "department": dept,
+        "explanation": explanation
     }
+
+def translate_text(text: str, target_lang: str) -> str:
+    """
+    Translates description text to target language ('te' or 'hi') using Groq Chat.
+    """
+    api_key, base_url, model = get_client_config()
+    if not api_key:
+        # Fallback local mock translation
+        if target_lang == 'te':
+            if "pothole" in text.lower():
+                return "రోడ్డు గుంతలు ఎక్కువగా ఉన్నాయి, దీనివల్ల వాహనాలు ప్రయాణించడానికి కష్టంగా ఉంది."
+            elif "garbage" in text.lower() or "trash" in text.lower():
+                return "రోడ్డుపై చెత్త కుప్పలు పేరుకుపోయాయి, దీనివల్ల దుర్వాసన వస్తోంది మరియు ఆరోగ్యం పాడవుతుంది."
+            elif "water" in text.lower():
+                return "మంచినీటి పైపులైను లీకేజీ అవ్వడం వల్ల నీరు వృధా అవుతోంది మరియు రోడ్డు నిండుతోంది."
+            return "పౌరుల ఫిర్యాదు: మీడియా ద్వారా సమస్య నివేదించబడింది."
+        elif target_lang == 'hi':
+            if "pothole" in text.lower():
+                return "सड़क पर गहरे गड्ढे बन गए हैं, जिससे वाहनों के आवागमन में खतरा हो रहा है।"
+            elif "garbage" in text.lower() or "trash" in text.lower():
+                return "सड़क पर कूड़े के ढेर जमा हो गए हैं, जिससे दुर्गंध आ रही है और बीमारी फैलने का खतरा है।"
+            elif "water" in text.lower():
+                return "पानी की पाइपलाइन लीक हो रही है, जिससे सड़क पर पानी भर रहा है और पानी बर्बाद हो रहा है।"
+            return "नागरिक शिकायत: मीडिया के माध्यम से समस्या दर्ज की गई है।";
+        return text
+
+    try:
+        lang_name = "Telugu" if target_lang == 'te' else "Hindi" if target_lang == 'hi' else "English"
+        prompt = f"Translate the following text to {lang_name}. Respond ONLY with the translated text. Do not add any greeting, formatting, markdown, explanation or surrounding text:\n\n{text}"
+        
+        response = requests.post(
+            base_url,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}"
+            },
+            json={
+                "model": model,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ]
+            },
+            timeout=10
+        )
+        response.raise_for_status()
+        res_json = response.json()
+        translation = res_json['choices'][0]['message']['content'].strip()
+        return translation
+    except Exception as e:
+        logger.error(f"Grok Translation error: {e}")
+        return text

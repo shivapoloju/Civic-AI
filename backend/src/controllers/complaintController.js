@@ -45,7 +45,7 @@ exports.createComplaint = async (req, res) => {
       });
     }
 
-    // Call AI analyzer (Gemini extraction or local heuristical engine)
+    // Call AI analyzer (Grok Vision extraction or local heuristical engine)
     const analysis = await aiService.analyzeComplaint(imageFile, voiceFile, lat, lng);
 
     const isFake = analysis.isFake || false;
@@ -130,7 +130,8 @@ exports.createComplaint = async (req, res) => {
             await Assignment.create({
               complaintId: complaint.id,
               workerId: closestWorker.id,
-              status: 'assigned'
+              status: 'assigned',
+              isAutoAssigned: true
             });
 
             complaint.status = 'assigned';
@@ -139,7 +140,7 @@ exports.createComplaint = async (req, res) => {
             closestWorker.status = 'busy';
             await closestWorker.save();
 
-            await logActivity('Complaint', complaint.id, 'AUTO_ASSIGNED_BY_AI', null, { 
+            await logActivity('Complaint', complaint.id, 'AUTO_ASSIGNED_BY_AI', 'SYSTEM', { 
               workerId: closestWorker.id, 
               workerName: closestWorker.User?.name,
               distanceKm: minDistance.toFixed(2)
@@ -355,5 +356,19 @@ exports.analyzeMedia = async (req, res) => {
   } catch (error) {
     console.error('Media analysis endpoint error:', error);
     res.status(500).json({ error: 'Failed to complete media analysis.' });
+  }
+};
+
+exports.translateText = async (req, res) => {
+  try {
+    const { text, targetLang } = req.body;
+    if (!text) {
+      return res.json({ translatedText: '' });
+    }
+    const translated = await aiService.translateText(text, targetLang);
+    res.json({ translatedText: translated });
+  } catch (error) {
+    console.error('Translation controller error:', error);
+    res.status(500).json({ error: 'Failed to translate text.' });
   }
 };

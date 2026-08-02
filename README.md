@@ -9,61 +9,63 @@
 **CivicAI** is a production-grade, closed-loop municipal grievance management portal. Traditional grievance systems suffer from slow manual sorting, duplicate report spam, lack of geolocated dispatches, and citizen dissatisfaction due to incomplete repairs. 
 
 CivicAI solves these challenges by combining:
-1. **Multimodal AI Intake**: Real-time YOLOv8 object detection to automatically identify issues (potholes, garbage leaks, open manholes) from uploads or live browser camera snapshots.
+1. **Multimodal AI Intake**: Real-time Grok Vision analysis to automatically identify issues (potholes, garbage leaks, open manholes) from uploads or live browser camera snapshots.
 2. **Spatial Routing**: Automated dispatch agent utilizing the **Haversine formula** to locate and assign the closest field crew based on live GPS tracking.
 3. **Closed-Loop Verification**: Citizens can rate repair work or **Reject Repair Quality**, escalating incomplete fixes directly to supervisors.
-4. **AI-Enabled Quality Audits**: Supervisors can compare before/after images using visual analysis models to approve resolutions or re-assign them to workers.
+4. **AI-Enabled Quality Audits**: Supervisors can compare before/after images using Grok Vision to approve resolutions or re-assign them to workers.
 
 ---
 
 ## 🏗️ Technical Architecture Diagram
 
-The system operates on a modular, event-driven service architecture designed to scale:
-
-```mermaid
+The system operates on a modular, event-driven service architecture desig```mermaid
 graph TD
     %% Portals (React Clients)
-    subgraph "Frontend Client (Vite + React)"
-        Citizen[Citizen Portal] -->|1. Submit Complaint / Rate / Reject| Backend[Express Gateway Server]
-        Worker[Field Tech Portal] -->|4. Update Status / Upload Resolution Proof| Backend
-        Supervisor[Supervisor Portal] -->|2. Route Dispatches / 5. Verify Quality| Backend
-        Admin[Admin Dashboard] -->|6. Monitor Metrics / Manage Crew| Backend
+    subgraph "Unified Frontend Portal (Vite + React)"
+        Citizen[Citizen Dashboard] -->|1. File Complaint / Review Repair| Backend[Express API Gateway]
+        Worker[Worker Dashboard] -->|3. Perform Repair / Sync Status| Backend
+        Supervisor[Supervisor Dashboard] -->|2. Route Dispatch / Audit Quality| Backend
+        Admin[Admin Dashboard] -->|4. Monitor System Metrics & Logs| Backend
+        
+        %% Unified Translation Event
+        Header[Unified Header Language Toggle] -.->|Broadcasts Lang Change Event| Citizen
+        Header -.->|Broadcasts Lang Change Event| Worker
+        Header -.->|Broadcasts Lang Change Event| Supervisor
+        Header -.->|Broadcasts Lang Change Event| Admin
     end
 
     %% WebSockets
-    Backend <-->|WebSockets Room Channels| Sockets[Socket.io Real-time Signals]
+    Backend <-->|WebSockets Real-time Rooms| Sockets[Socket.io Hub]
+    Sockets -->|Live Complaints Count Updates| Supervisor
+    Sockets -->|Live Complaints Count Updates| Admin
 
     %% Databases
-    subgraph "Database Layer"
+    subgraph "Persistence Layer"
         Backend -->|Sequelize ORM| SQL[(SQLite/Postgres Relational DB)]
-        Backend -->|Mongoose / NeDB| NoSQL[(MongoDB Audit Trail Logs)]
+        Backend -->|Mongoose / NeDB| NoSQL[(MongoDB Audit Logs)]
     end
 
     %% AI Services
     subgraph "AI Microservice (FastAPI + Python)"
-        Backend <-->|Axios Gateway REST API| PythonAI[FastAPI AI Backend]
-        PythonAI -->|Inference Engine| YOLO[YOLOv8 Object Detector]
-        PythonAI -->|Multimodal Visual AI| Gemini[Gemini 1.5 Flash Vision API]
+        Backend <-->|Proxy REST Requests| PythonAI[FastAPI AI Backend]
+        PythonAI -->|Multimodal Visual Audit| Grok[Grok Vision API]
+        PythonAI -->|Dynamic Language Translation| Translation[AI Translator Engine]
     end
     
     %% DB Tables Info
-    SQL --- SQLTables[Users / Complaints / Assignments / Ratings / Verifications]
-    NoSQL --- NoSQLLogs[Chronological Activity Logs / Audit Trails]
+    SQL --- SQLTables[Users / Complaints / Assignments / Ratings]
+    NoSQL --- NoSQLLogs[Chronological Activity / Audit Logs]
 ```
 
 ---
 
 ## 🚀 Core Features (Explain Everything)
 
-### 1. Instant AI Hazard Identification (YOLOv8)
+### 1. Instant AI Hazard Identification (Grok Vision)
 * Citizens can upload an image or **activate their live browser camera** to take a snapshot of the hazard (e.g. pothole, garbage pile, water leakage).
-* The FastAPI backend passes the image to the **YOLOv8 Nano** object detection model.
-* It classifies the object categories and automatically fills the forms:
-  * **Vehicles/Road Signs** ➔ Categorizes as **Potholes** (Roads Dept).
-  * **Trash/Containers** ➔ Categorizes as **Garbage Accumulation** (Sanitation Dept).
-  * **Hydrants/Pipes** ➔ Categorizes as **Water Leakage** (Water Dept).
-  * **Benches/Plants** ➔ Categorizes as **Fallen Trees** (Parks Dept).
-* **Smart Fallback Hashing**: If YOLOv8 is offline or detects nothing (e.g. a blank image), a high-entropy checksum (hashing sample bytes from the middle of the image combined with total file size) resolves the category, ensuring the form remains dynamic and never gets stuck.
+* The FastAPI backend passes the image to the **Grok Vision** model.
+* It uses advanced multimodal visual reasoning to automatically identify the issue, classify the category, write a formal description, assign a department, and estimate severity.
+* **Deterministic Fallback**: If Grok is offline or API keys are missing, a local pixel-analysis heuristic engine combined with filename keyword matching resolves the category, ensuring the form remains dynamic and never gets stuck.
 
 ### 2. Spatial Dispatch Sorting (Haversine Formula)
 * When a complaint is filed, the Express backend extracts its GPS coordinates.
@@ -80,11 +82,11 @@ graph TD
 
 ### 4. Supervisor Quality Audits
 * The supervisor dashboard displays pending verifications and citizen rejections.
-* **AI Quality Assessment**: The supervisor can trigger a visual before/after image comparison using Gemini/Vision models to compute a repair confidence score.
+* **AI Quality Assessment**: The supervisor can trigger a visual before/after image comparison using Grok Vision to compute a repair confidence score.
 * If the supervisor approves (even if previously rejected by the citizen), the issue transitions to `closed`. If the supervisor agrees with the rejection, they click **Send back to worker**, resetting the ticket status to `work_started`.
 
 ### 5. Multi-lingual Settings
-* Toggle configurations supporting **English**, **Telugu (తెలుగు)**, and **Hindi (हिन्दी)** with persistent local storage.
+* Toggle configurations supporting **English**, **Telugu (తెలుగు)**, and **Hindi (హిन्दी)** with persistent local storage.
 
 ---
 
@@ -92,7 +94,7 @@ graph TD
 
 * **Frontend**: React (Vite) + Tailwind CSS + Leaflet maps + Lucide Icons + Recharts (Analytics Charts)
 * **Web Backend**: Node.js + Express.js + Socket.io (WebSockets)
-* **AI Core Backend**: FastAPI + Python + YOLOv8 (`ultralytics`) + Google Generative AI (Gemini SDK)
+* **AI Core Backend**: FastAPI + Python + Grok Vision (xAI API)
 * **Databases**:
   * **Relational Store**: PostgreSQL (SQLite fallback) mapping Users, Workers, Complaints, Assignments, Ratings, and Verifications.
   * **NoSQL Store**: MongoDB (NeDB fallback) logging chronological Audit logs and notifications.
@@ -105,10 +107,15 @@ Test all five dashboards out-of-the-box using the pre-seeded credentials:
 
 | Role | Username / Email | Password | Primary Action Panel |
 | :--- | :--- | :--- | :--- |
-| **System Admin** | `admin@civicai.org` | `Admin@123` | Analytics deck, direct worker creation, audit accordion logs. |
+| **System Admin** | `admin@civicai.org` | `Admin@123` | Analytics deck, direct worker creation, audit logs. |
 | **Supervisor** | `supervisor@civicai.org` | `Supervisor@123` | Manual worker dispatch, verify completed repairs, AI image compares. |
-| **Field Worker** | `worker@civicai.org` | `Worker@123` | Accepts jobs, updates status timeline, uploads proof photo, offline cache. |
-| **Citizen** | `citizen@civicai.org` | `Citizen@123` | Incident filing, map picker, voice comment recorder, ratings & rejections. |
+| **Citizen** | `citizen@civicai.org` | `Citizen@123` | Incident filing, map picker, ratings & rejections. |
+| **Worker (Roads)** | `worker@civicai.org` | `Worker@123` | Accepts jobs, updates status timeline, uploads proof photo, offline cache. |
+| **Worker (Water)** | `worker_water@civicai.org` | `Worker@123` | Accepts jobs, updates status timeline, uploads proof photo, offline cache. |
+| **Worker (Sanitation)** | `worker_sanitation@civicai.org` | `Worker@123` | Accepts jobs, updates status timeline, uploads proof photo, offline cache. |
+| **Worker (Electricity)** | `worker_electricity@civicai.org` | `Worker@123` | Accepts jobs, updates status timeline, uploads proof photo, offline cache. |
+| **Worker (Traffic)** | `worker_traffic@civicai.org` | `Worker@123` | Accepts jobs, updates status timeline, uploads proof photo, offline cache. |
+| **Worker (Parks)** | `worker_parks@civicai.org` | `Worker@123` | Accepts jobs, updates status timeline, uploads proof photo, offline cache. |
 
 ---
 
@@ -124,7 +131,7 @@ Test all five dashboards out-of-the-box using the pre-seeded credentials:
 ```bash
 cd ai_service
 pip install -r requirements.txt
-# To run YOLOv8 and dynamic fallbacks:
+# To run Grok Vision and dynamic fallbacks:
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload
 ```
 

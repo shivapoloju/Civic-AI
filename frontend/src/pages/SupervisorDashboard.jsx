@@ -1,18 +1,124 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
-import { ClipboardCheck, Sparkles, CheckCircle2, AlertTriangle, ArrowRight, UserPlus, FileText, Check, AlertOctagon } from 'lucide-react';
+import Timeline from '../components/Timeline';
+import { useAuth } from '../context/AuthContext';
+import { ClipboardCheck, Sparkles, CheckCircle2, AlertTriangle, ArrowRight, UserPlus, FileText, Check, AlertOctagon, ClipboardList, Activity, Shield } from 'lucide-react';
+
+const t = {
+  en: {
+    categories: {
+      "Potholes": "Potholes",
+      "Water leakage": "Water leakage",
+      "Street lights": "Street lights",
+      "Open manholes": "Open manholes",
+      "Drainage": "Drainage",
+      "Fallen trees": "Fallen trees",
+      "Illegal dumping": "Illegal dumping",
+      "Garbage": "Garbage"
+    }
+  },
+  hi: {
+    categories: {
+      "Potholes": "सड़क के गड्ढे",
+      "Water leakage": "पानी का रिसाव",
+      "Street lights": "स्ट्रीट लाइट",
+      "Open manholes": "खुले मैनहोल",
+      "Drainage": "जल निकासी",
+      "Fallen trees": "गिरे हुए पेड़",
+      "Illegal dumping": "अवैध डंपिंग",
+      "Garbage": "कचरा"
+    }
+  },
+  te: {
+    categories: {
+      "Potholes": "రోడ్డు గుంతలు",
+      "Water leakage": "నీటి లీకేజీ",
+      "Street lights": "వీధి దీపాలు",
+      "Open manholes": "తెరిచిన మ్యాన్‌హోల్స్",
+      "Drainage": "డ్రైనేజీ",
+      "Fallen trees": "కూలిపోయిన చెట్లు",
+      "Illegal dumping": "అక్రమ డంపింగ్",
+      "Garbage": "చెత్త"
+    }
+  }
+};
 
 const SupervisorDashboard = () => {
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
   const [pendingVerifications, setPendingVerifications] = useState([]);
   const [unassignedComplaints, setUnassignedComplaints] = useState([]);
+  const [lang, setLang] = useState(localStorage.getItem('civic_lang') || 'en');
+  const [translatedFeedback, setTranslatedFeedback] = useState('');
+  const [translatedDesc, setTranslatedDesc] = useState('');
+  const [aiReport, setAiReport] = useState(null);
+
+  useEffect(() => {
+    const handleLangUpdate = () => {
+      setLang(localStorage.getItem('civic_lang') || 'en');
+    };
+    window.addEventListener('civic_lang_changed', handleLangUpdate);
+    return () => window.removeEventListener('civic_lang_changed', handleLangUpdate);
+  }, []);
+
+  useEffect(() => {
+    const desc = selectedDispatch?.description || selectedAudit?.description;
+    if (!desc) {
+      setTranslatedDesc('');
+      return;
+    }
+    
+    if (lang === 'en') {
+      setTranslatedDesc(desc);
+      return;
+    }
+
+    const translate = async () => {
+      try {
+        const res = await axios.post(`${API_URL}/complaints/translate`, {
+          text: desc,
+          targetLang: lang
+        });
+        setTranslatedDesc(res.data.translatedText);
+      } catch (err) {
+        setTranslatedDesc(desc);
+      }
+    };
+
+    translate();
+  }, [selectedDispatch, selectedAudit, lang]);
   const [availableWorkers, setAvailableWorkers] = useState([]);
+  const [complaints, setComplaints] = useState([]);
+  const { user } = useAuth();
 
   const [selectedAudit, setSelectedAudit] = useState(null);
   const [selectedDispatch, setSelectedDispatch] = useState(null);
   
-  // AI verification details
-  const [aiReport, setAiReport] = useState(null);
+  useEffect(() => {
+    if (!aiReport?.feedback) {
+      setTranslatedFeedback('');
+      return;
+    }
+    
+    if (lang === 'en') {
+      setTranslatedFeedback(aiReport.feedback);
+      return;
+    }
+
+    const translate = async () => {
+      try {
+        const res = await axios.post(`${API_URL}/complaints/translate`, {
+          text: aiReport.feedback,
+          targetLang: lang
+        });
+        setTranslatedFeedback(res.data.translatedText);
+      } catch (err) {
+        setTranslatedFeedback(aiReport.feedback);
+      }
+    };
+
+    translate();
+  }, [aiReport, lang]);
   const [aiLoading, setAiLoading] = useState(false);
 
   // Dispatch details
@@ -32,8 +138,6 @@ const SupervisorDashboard = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
   useEffect(() => {
     fetchSupervisorBoard();
   }, []);
@@ -42,10 +146,11 @@ const SupervisorDashboard = () => {
     try {
       setLoading(true);
       
-      const [verifs, raised, workers] = await Promise.all([
+      const [verifs, raised, workers, allComplaints] = await Promise.all([
         axios.get(`${API_URL}/supervisors/pending-verifications`),
         axios.get(`${API_URL}/complaints?status=assigned`), // or raised/unassigned
-        axios.get(`${API_URL}/supervisors/available-workers`)
+        axios.get(`${API_URL}/supervisors/available-workers`),
+        axios.get(`${API_URL}/complaints`)
       ]);
       
       // Also fetch raised complaints
@@ -54,6 +159,7 @@ const SupervisorDashboard = () => {
       setPendingVerifications(verifs.data);
       setUnassignedComplaints([...raisedRes.data, ...raised.data]);
       setAvailableWorkers(workers.data);
+      setComplaints(allComplaints.data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -177,8 +283,69 @@ const SupervisorDashboard = () => {
     }
   };
 
+  const deptComplaints = user?.departmentId
+    ? complaints.filter(c => c.departmentId === user.departmentId)
+    : complaints;
+
   return (
     <Layout>
+      {/* Live Metrics Deck */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+        
+        {/* Unassigned */}
+        <div className="glass-panel p-6 rounded-2xl border dark:border-slate-800 flex justify-between items-center shadow bg-gradient-to-br from-brand-500/10 to-brand-500/5">
+          <div>
+            <span className="block text-[10px] uppercase tracking-wider text-slate-400 font-extrabold">Unassigned</span>
+            <span className="text-3xl font-black text-brand-500 mt-1 block">
+              {deptComplaints.filter(c => c.status === 'raised').length}
+            </span>
+          </div>
+          <div className="p-3 bg-brand-500/10 text-brand-500 rounded-xl">
+            <ClipboardList className="w-6 h-6" />
+          </div>
+        </div>
+
+        {/* Active */}
+        <div className="glass-panel p-6 rounded-2xl border dark:border-slate-800 flex justify-between items-center shadow bg-gradient-to-br from-blue-500/10 to-blue-500/5">
+          <div>
+            <span className="block text-[10px] uppercase tracking-wider text-slate-400 font-extrabold">Active</span>
+            <span className="text-3xl font-black text-blue-500 mt-1 block">
+              {deptComplaints.filter(c => c.status === 'assigned' || c.status === 'worker_assigned').length}
+            </span>
+          </div>
+          <div className="p-3 bg-blue-500/10 text-blue-500 rounded-xl">
+            <Activity className="w-6 h-6" />
+          </div>
+        </div>
+
+        {/* In Progress */}
+        <div className="glass-panel p-6 rounded-2xl border dark:border-slate-800 flex justify-between items-center shadow bg-gradient-to-br from-amber-500/10 to-amber-500/5">
+          <div>
+            <span className="block text-[10px] uppercase tracking-wider text-slate-400 font-extrabold">In Progress</span>
+            <span className="text-3xl font-black text-amber-500 mt-1 block">
+              {deptComplaints.filter(c => c.status === 'worker_reached' || c.status === 'work_started' || c.status === 'citizen_rejected').length}
+            </span>
+          </div>
+          <div className="p-3 bg-amber-500/10 text-amber-500 rounded-xl">
+            <Activity className="w-6 h-6" />
+          </div>
+        </div>
+
+        {/* Completed */}
+        <div className="glass-panel p-6 rounded-2xl border dark:border-slate-800 flex justify-between items-center shadow bg-gradient-to-br from-emerald-500/10 to-emerald-500/5">
+          <div>
+            <span className="block text-[10px] uppercase tracking-wider text-slate-400 font-extrabold">Completed</span>
+            <span className="text-3xl font-black text-emerald-500 mt-1 block">
+              {deptComplaints.filter(c => c.status === 'completed' || c.status === 'citizen_verified' || c.status === 'closed').length}
+            </span>
+          </div>
+          <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-xl">
+            <Shield className="w-6 h-6" />
+          </div>
+        </div>
+
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* Left Side: Audit Tasks Pending Verification */}
@@ -220,7 +387,9 @@ const SupervisorDashboard = () => {
                           Ready for review
                         </span>
                       )}
-                      <h4 className="font-bold text-xs uppercase text-slate-700 dark:text-slate-200 mt-2">{item.category}</h4>
+                      <h4 className="font-bold text-xs uppercase text-slate-700 dark:text-slate-200 mt-2">
+                        {t[lang]?.categories?.[item.category] || item.category}
+                      </h4>
                       <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate max-w-[280px]">{item.address}</p>
                     </div>
                     <ArrowRight className="w-4 h-4 text-slate-400" />
@@ -259,13 +428,31 @@ const SupervisorDashboard = () => {
                             ⚠️ Flagged: Dummy Image
                           </span>
                         )}
+                        {(item.Assignments?.[0]?.isAutoAssigned || item.assignments?.[0]?.isAutoAssigned) && (
+                          <span className="px-2 py-0.5 rounded text-[8px] font-extrabold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 animate-pulse uppercase tracking-wider">
+                            ⚡ Auto Assigned
+                          </span>
+                        )}
                       </div>
-                      <h4 className="font-bold text-xs uppercase text-slate-700 dark:text-slate-200 mt-2">{item.category}</h4>
+                      <h4 className="font-bold text-xs uppercase text-slate-700 dark:text-slate-200 mt-2">
+                        {t[lang]?.categories?.[item.category] || item.category}
+                      </h4>
                       <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate max-w-[280px]">{item.address}</p>
                     </div>
-                    <span className="text-[10px] font-bold text-brand-500 flex items-center gap-1 uppercase tracking-wider">
-                      Dispatch <ArrowRight className="w-3.5 h-3.5" />
-                    </span>
+                    {item.status === 'assigned' ? (
+                      <div className="text-right flex flex-col items-end">
+                        <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
+                          Assigned
+                        </span>
+                        <span className="text-[8px] text-slate-400 capitalize mt-0.5">
+                          {item.Assignments?.[0]?.worker?.User?.name || item.assignments?.[0]?.worker?.User?.name || 'Worker'}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-[10px] font-bold text-brand-500 flex items-center gap-1 uppercase tracking-wider">
+                        Dispatch <ArrowRight className="w-3.5 h-3.5" />
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -353,6 +540,13 @@ const SupervisorDashboard = () => {
               Repair quality inspection audit
             </h3>
 
+            <div className="p-3.5 bg-slate-50 dark:bg-darkbg-800/40 border dark:border-slate-800 rounded-xl text-xs space-y-1 mb-4">
+              <div className="font-bold text-slate-400 uppercase text-[9px] mb-1">Grievance Info</div>
+              <div>Category: <span className="font-bold">{t[lang]?.categories?.[selectedAudit.category] || selectedAudit.category}</span></div>
+              <div>Address: <span className="font-semibold text-slate-500">{selectedAudit.address}</span></div>
+              <div>Description: <span className="font-semibold text-slate-300">{translatedDesc || selectedAudit.description}</span></div>
+            </div>
+
             {/* Before/After side-by-side comparison */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div className="border dark:border-slate-800 rounded-2xl p-2.5 bg-slate-900">
@@ -372,6 +566,12 @@ const SupervisorDashboard = () => {
                   <div className="w-full h-48 bg-slate-800 rounded-lg flex items-center justify-center text-slate-500 text-xs">No Photo</div>
                 )}
               </div>
+            </div>
+
+            {/* Timeline Progress */}
+            <div className="mt-4 mb-6 border-t dark:border-slate-800 pt-4">
+              <span className="block text-[10px] font-extrabold uppercase text-slate-400 mb-2">Workflow Progress Timeline</span>
+              <Timeline currentStatus={selectedAudit.status} />
             </div>
 
             {/* AI Diagnostics report panel */}
@@ -403,7 +603,7 @@ const SupervisorDashboard = () => {
                       Confidence: {(aiReport.confidenceScore * 100).toFixed(0)}%
                     </span>
                   </div>
-                  <p className="text-slate-400 leading-relaxed italic">{aiReport.feedback}</p>
+                  <p className="text-slate-400 leading-relaxed italic">{translatedFeedback || aiReport.feedback}</p>
                 </div>
               )}
             </div>
@@ -450,7 +650,7 @@ const SupervisorDashboard = () => {
       {/* Dispatch Modal Popups */}
       {selectedDispatch && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-          <div className="glass-panel w-full max-w-md rounded-3xl p-6 border dark:border-slate-800 shadow-2xl relative">
+          <div className="glass-panel w-full max-w-3xl rounded-3xl p-6 border dark:border-slate-800 shadow-2xl relative">
             
             <button 
               onClick={() => { setSelectedDispatch(null); setSelectedWorkerId(''); }}
@@ -465,36 +665,60 @@ const SupervisorDashboard = () => {
 
             <div className="p-3 bg-slate-50 dark:bg-darkbg-800/40 border dark:border-slate-800 rounded-xl text-xs space-y-1 mb-4">
               <div className="font-bold text-slate-400 uppercase text-[9px] mb-1">Grievance Info</div>
-              <div>Category: <span className="font-bold">{selectedDispatch.category}</span></div>
+              <div>Category: <span className="font-bold">{t[lang]?.categories?.[selectedDispatch.category] || selectedDispatch.category}</span></div>
               <div>Address: <span className="font-semibold text-slate-500">{selectedDispatch.address}</span></div>
               <div>Priority: <span className="font-bold text-orange-500 uppercase">{selectedDispatch.priority}</span></div>
+              <div>Description: <span className="font-semibold text-slate-300">{translatedDesc || selectedDispatch.description}</span></div>
             </div>
 
-            <form onSubmit={handleDispatchSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Select Crew</label>
-                <select 
-                  value={selectedWorkerId}
-                  onChange={e => setSelectedWorkerId(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-darkbg-800 border dark:border-slate-800 rounded-xl text-slate-300 text-sm focus:outline-none"
-                >
-                  <option value="">Select available crew member...</option>
-                  {availableWorkers.map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.User?.name} ({w.Department?.name}) - {w.status}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* Timeline Progress */}
+            <div className="mb-4 border-t dark:border-slate-800 pt-3">
+              <span className="block text-[10px] font-extrabold uppercase text-slate-400 mb-2">Workflow Progress Timeline</span>
+              <Timeline currentStatus={selectedDispatch.status} />
+            </div>
 
-              <button 
-                type="submit" 
-                disabled={loading}
-                className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-extrabold rounded-xl shadow text-xs uppercase tracking-wider transition"
-              >
-                Dispatch Job Crew
-              </button>
-            </form>
+            {selectedDispatch.status === 'assigned' || selectedDispatch.status === 'worker_assigned' ? (
+              <div className="p-4 bg-brand-500/10 border border-brand-500/20 text-brand-500 rounded-xl text-xs space-y-2 mb-4">
+                <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px]">
+                  <span>⚡ Auto Dispatch Active</span>
+                </div>
+                <p className="text-slate-400 leading-relaxed">
+                  This municipal task has been automatically matched and assigned to worker:{' '}
+                  <strong className="text-brand-400">
+                    {selectedDispatch.Assignments?.[0]?.worker?.User?.name || selectedDispatch.assignments?.[0]?.worker?.User?.name || 'Municipal crew member'}
+                  </strong>.
+                </p>
+                <p className="text-[10px] text-slate-500 italic">
+                  Crew re-assignment is blocked because auto-dispatch has resolved this grievance.
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleDispatchSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Select Crew</label>
+                  <select 
+                    value={selectedWorkerId}
+                    onChange={e => setSelectedWorkerId(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-darkbg-800 border dark:border-slate-800 rounded-xl text-slate-300 text-sm focus:outline-none"
+                  >
+                    <option value="">Select available crew member...</option>
+                    {availableWorkers.map((w) => (
+                      <option key={w.id} value={w.id}>
+                        {w.User?.name} ({w.Department?.name}) - {w.status}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={loading}
+                  className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-extrabold rounded-xl shadow text-xs uppercase tracking-wider transition"
+                >
+                  Dispatch Job Crew
+                </button>
+              </form>
+            )}
 
           </div>
         </div>

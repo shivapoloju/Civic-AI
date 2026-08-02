@@ -23,7 +23,29 @@ const t = {
     markComplete: "Mark Resolution Complete",
     taskResolved: "Task Resolved",
     photoRemediation: "Photo must clearly show hazard remediation",
-    uploadRepairProof: "Upload Repair Proof Photo"
+    uploadRepairProof: "Upload Repair Proof Photo",
+    categories: {
+      "Potholes": "Potholes",
+      "Water leakage": "Water leakage",
+      "Street lights": "Street lights",
+      "Open manholes": "Open manholes",
+      "Drainage": "Drainage",
+      "Fallen trees": "Fallen trees",
+      "Illegal dumping": "Illegal dumping",
+      "Garbage": "Garbage"
+    },
+    assignmentRef: "Assignment Reference ID:",
+    issuePhoto: "Issue Photo",
+    reporter: "Reporter:",
+    contact: "Contact:",
+    mapNavigation: "Map Navigation",
+    incidentDesc: "Incident Description",
+    statusMap: {
+      "assigned": "Assigned",
+      "accepted": "Accepted",
+      "working": "In Progress",
+      "completed": "Completed"
+    }
   },
   hi: {
     crewControl: "क्रू नियंत्रण",
@@ -44,7 +66,29 @@ const t = {
     markComplete: "समाधान पूर्ण मार्क करें",
     taskResolved: "समस्या हल हो गई है",
     photoRemediation: "फोटो में स्पष्ट रूप से मरम्मत दिखनी चाहिए",
-    uploadRepairProof: "मरम्मत की प्रमाण फोटो अपलोड करें"
+    uploadRepairProof: "मरम्मत की प्रमाण फोटो अपलोड करें",
+    categories: {
+      "Potholes": "सड़क के गड्ढे",
+      "Water leakage": "पानी का रिसाव",
+      "Street lights": "स्ट्रीट लाइट",
+      "Open manholes": "खुले मैनहोल",
+      "Drainage": "जल निकासी",
+      "Fallen trees": "गिरे हुए पेड़",
+      "Illegal dumping": "अवैध डंपिंग",
+      "Garbage": "कचरा"
+    },
+    assignmentRef: "असाइनमेंट संदर्भ आईडी:",
+    issuePhoto: "समस्या की फोटो",
+    reporter: "रिपोर्टर:",
+    contact: "संपर्क:",
+    mapNavigation: "मानचित्र नेविगेशन",
+    incidentDesc: "घटना का विवरण",
+    statusMap: {
+      "assigned": "सौंप दिया गया",
+      "accepted": "स्वीकार किया गया",
+      "working": "कार्य प्रगति पर है",
+      "completed": "पूरा हो गया"
+    }
   },
   te: {
     crewControl: "సిబ్బంది నియంత్రణ",
@@ -65,7 +109,29 @@ const t = {
     markComplete: "పని పూర్తయినట్లు గుర్తించు",
     taskResolved: "సమస్య పరిష్కరించబడింది",
     photoRemediation: "ఫోటో రిపేరు చేసినట్లు స్పష్టంగా చూపించాలి",
-    uploadRepairProof: "పని పూర్తయిన రుజువు ఫోటోను అప్‌లోడ్ చేయండి"
+    uploadRepairProof: "పని పూర్తయిన రుజువు ఫోటోను అప్‌లోడ్ చేయండి",
+    categories: {
+      "Potholes": "రోడ్డు గుంతలు",
+      "Water leakage": "నీటి లీకేజీ",
+      "Street lights": "వీధి దీపాలు",
+      "Open manholes": "తెరిచిన మ్యాన్‌హోల్స్",
+      "Drainage": "డ్రైనేజీ",
+      "Fallen trees": "కూలిపోయిన చెట్లు",
+      "Illegal dumping": "అక్రమ డంపింగ్",
+      "Garbage": "చెత్త"
+    },
+    assignmentRef: "అసైన్మెంట్ రిఫరెన్స్ ఐడి:",
+    issuePhoto: "సమస్య ఫోటో",
+    reporter: "రిపోర్టర్:",
+    contact: "సంప్రదించండి:",
+    mapNavigation: "మ్యాప్ నావిగేషన్",
+    incidentDesc: "సమస్య వివరణ",
+    statusMap: {
+      "assigned": "కేటాయించబడింది",
+      "accepted": "అంగీకరించబడింది",
+      "working": "పని జరుగుతోంది",
+      "completed": "పూర్తయింది"
+    }
   }
 };
 
@@ -73,6 +139,7 @@ const WorkerDashboard = () => {
   const [tasks, setTasks] = useState([]);
   const [workerProfile, setWorkerProfile] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [translatedDesc, setTranslatedDesc] = useState('');
 
   // Form states for repair verification
   const [afterImageFile, setAfterImageFile] = useState(null);
@@ -90,6 +157,32 @@ const WorkerDashboard = () => {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
   useEffect(() => {
+    if (!selectedTask?.Complaint?.description) {
+      setTranslatedDesc('');
+      return;
+    }
+    
+    if (lang === 'en') {
+      setTranslatedDesc(selectedTask.Complaint.description);
+      return;
+    }
+
+    const translate = async () => {
+      try {
+        const res = await axios.post(`${API_URL}/complaints/translate`, {
+          text: selectedTask.Complaint.description,
+          targetLang: lang
+        });
+        setTranslatedDesc(res.data.translatedText);
+      } catch (err) {
+        setTranslatedDesc(selectedTask.Complaint.description);
+      }
+    };
+
+    translate();
+  }, [selectedTask, lang]);
+
+  useEffect(() => {
     fetchWorkerTasks();
 
     const handleOnline = () => setIsOffline(false);
@@ -98,12 +191,18 @@ const WorkerDashboard = () => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    const handleLangUpdate = () => {
+      setLang(localStorage.getItem('civic_lang') || 'en');
+    };
+    window.addEventListener('civic_lang_changed', handleLangUpdate);
+
     // Run mock location update sequence (simulate worker walking to site)
     const gpsInterval = setInterval(updateLiveGPSPosition, 45000); // 45 seconds
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('civic_lang_changed', handleLangUpdate);
       clearInterval(gpsInterval);
     };
   }, []);
@@ -259,24 +358,6 @@ const WorkerDashboard = () => {
 
   return (
     <Layout>
-      {/* Language Selector */}
-      <div className="flex justify-end gap-2 mb-6">
-        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center">Language / భాష / भाषा:</label>
-        <select 
-          value={lang} 
-          onChange={e => {
-            const l = e.target.value;
-            setLang(l);
-            localStorage.setItem('civic_lang', l);
-          }} 
-          className="px-3 py-1 bg-darkbg-800 border dark:border-slate-800 rounded-xl text-slate-300 text-xs font-bold focus:outline-none"
-        >
-          <option value="en">English</option>
-          <option value="hi">हिन्दी (Hindi)</option>
-          <option value="te">తెలుగు (Telugu)</option>
-        </select>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* Left Side: Status / Control Panel */}
@@ -417,17 +498,19 @@ const WorkerDashboard = () => {
 
             <div className="flex justify-between items-center border-b dark:border-slate-800 pb-3 mb-4">
               <div>
-                <h3 className="font-extrabold text-base uppercase text-brand-500">{selectedTask.Complaint?.category}</h3>
-                <p className="text-[10px] text-slate-400">Assignment Reference ID: {selectedTask.id}</p>
+                <h3 className="font-extrabold text-base uppercase text-brand-500">
+                  {t[lang].categories?.[selectedTask.Complaint?.category] || selectedTask.Complaint?.category}
+                </h3>
+                <p className="text-[10px] text-slate-400">{t[lang].assignmentRef} {selectedTask.id}</p>
               </div>
               <span className={`px-2 py-0.5 rounded text-[9px] font-bold border uppercase ${getTaskStatusStyles(selectedTask.status)}`}>
-                {selectedTask.status}
+                {t[lang].statusMap?.[selectedTask.status] || selectedTask.status}
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div>
-                <span className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Issue Photo</span>
+                <span className="block text-[10px] font-bold uppercase text-slate-400 mb-1">{t[lang].issuePhoto}</span>
                 {selectedTask.Complaint?.imageUrlBefore ? (
                   <img src={`http://localhost:5000${selectedTask.Complaint.imageUrlBefore}`} className="w-full h-36 object-cover rounded-xl border dark:border-slate-800" />
                 ) : (
@@ -437,11 +520,11 @@ const WorkerDashboard = () => {
               <div className="flex flex-col justify-between p-3 bg-slate-50 dark:bg-darkbg-800/40 rounded-xl border dark:border-slate-800 text-xs">
                 <div className="space-y-2">
                   <div>
-                    <span className="font-bold text-slate-400">Reporter:</span>
+                    <span className="font-bold text-slate-400">{t[lang].reporter}</span>
                     <p className="font-semibold">{selectedTask.Complaint?.citizen?.name || 'Citizen'}</p>
                   </div>
                   <div>
-                    <span className="font-bold text-slate-400">Contact:</span>
+                    <span className="font-bold text-slate-400">{t[lang].contact}</span>
                     <p className="font-semibold text-slate-500">{selectedTask.Complaint?.citizen?.phone || 'Private'}</p>
                   </div>
                 </div>
@@ -452,13 +535,13 @@ const WorkerDashboard = () => {
                   rel="noopener noreferrer"
                   className="mt-3 py-2 bg-slate-200 dark:bg-darkbg-700 hover:scale-[1.01] transition font-bold rounded-lg text-center flex items-center justify-center gap-1.5"
                 >
-                  <Navigation className="w-3.5 h-3.5 text-brand-500" /> Map Navigation
+                  <Navigation className="w-3.5 h-3.5 text-brand-500" /> {t[lang].mapNavigation}
                 </a>
               </div>
             </div>
 
             <div className="p-4 bg-slate-100 dark:bg-darkbg-800/20 rounded-xl text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-6">
-              <span className="font-bold block uppercase text-slate-400 text-[10px] mb-1">Incident description</span>
+              <span className="font-bold block uppercase text-slate-400 text-[10px] mb-1">{t[lang].incidentDesc}</span>
               {selectedTask.Complaint?.description}
             </div>
 

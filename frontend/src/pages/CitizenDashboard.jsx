@@ -446,10 +446,10 @@ const CitizenDashboard = () => {
             <form onSubmit={handleFormSubmit} className="space-y-4">
               
               {/* Media Uploads Grid */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="w-full">
                 
                 {/* Photo Upload / Capture area */}
-                <div className="border border-dashed dark:border-slate-800 border-slate-300 rounded-xl p-3 flex flex-col items-center justify-center text-center relative overflow-hidden bg-slate-50 dark:bg-darkbg-800/40 min-h-[120px]">
+                <div className="border border-dashed dark:border-slate-800 border-slate-300 rounded-xl p-3 flex flex-col items-center justify-center text-center relative overflow-hidden bg-slate-50 dark:bg-darkbg-800/40 min-h-[140px]">
                   {isCameraActive ? (
                     <div className="absolute inset-0 w-full h-full bg-black flex flex-col items-center justify-center">
                       <video ref={videoRef} className="w-full h-full object-cover" playsInline />
@@ -482,9 +482,9 @@ const CitizenDashboard = () => {
                       </button>
                     </>
                   ) : (
-                    <div className="flex flex-col items-center">
+                    <div className="flex flex-col items-center py-4">
                       <label className="cursor-pointer flex flex-col items-center">
-                        <Camera className="w-6 h-6 text-slate-400 mb-1" />
+                        <Camera className="w-8 h-8 text-slate-400 mb-1" />
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">{t[lang].addPhoto}</span>
                         <span className="text-[8px] text-slate-400 mt-0.5">{t[lang].addPhotoSub}</span>
                         <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
@@ -492,50 +492,10 @@ const CitizenDashboard = () => {
                       <button 
                         type="button"
                         onClick={startCamera}
-                        className="mt-1.5 px-2 py-0.5 bg-brand-500 hover:bg-brand-600 text-white text-[8px] font-extrabold uppercase rounded shadow transition"
+                        className="mt-2.5 px-3 py-1 bg-brand-500 hover:bg-brand-600 text-white text-[9px] font-extrabold uppercase rounded shadow transition"
                       >
                         Live Camera
                       </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Voice Upload area */}
-                <div className="border border-dashed dark:border-slate-800 border-slate-300 rounded-xl p-3 flex flex-col items-center justify-center text-center relative bg-slate-50 dark:bg-darkbg-800/40 min-h-[120px]">
-                  {voicePreview ? (
-                    <div className="flex flex-col items-center w-full">
-                      <audio src={voicePreview} controls className="w-full h-8 scale-90" />
-                      <button 
-                        type="button" 
-                        onClick={() => { setVoiceBlob(null); setVoicePreview(null); }}
-                        className="mt-2 flex items-center gap-1 text-[10px] text-red-500 font-bold uppercase tracking-wider"
-                      >
-                        <Trash2 className="w-3 h-3" /> Clear
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center">
-                      {isRecording ? (
-                        <button 
-                          type="button" 
-                          onClick={stopRecording}
-                          className="p-3 bg-red-500 text-white rounded-full animate-pulse shadow-md"
-                        >
-                          <Square className="w-4 h-4 fill-white" />
-                        </button>
-                      ) : (
-                        <button 
-                          type="button" 
-                          onClick={startRecording}
-                          className="p-3 bg-brand-500 text-white rounded-full hover:scale-105 shadow-md"
-                        >
-                          <Mic className="w-4 h-4" />
-                        </button>
-                      )}
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mt-2">
-                        {isRecording ? (lang === 'te' ? 'రికార్డ్ అవుతోంది...' : lang === 'hi' ? 'रिकॉर्डिंग...' : 'Recording...') : t[lang].voiceRecord}
-                      </span>
-                      <span className="text-[8px] text-slate-400 mt-0.5">{t[lang].voiceRecordSub}</span>
                     </div>
                   )}
                 </div>

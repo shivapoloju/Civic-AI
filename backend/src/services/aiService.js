@@ -283,3 +283,34 @@ exports.getPredictiveMaintenance = async (history) => {
     };
   }
 };
+
+exports.translateText = async (text, targetLang) => {
+  try {
+    const result = await callAIJsonService('/ai/translate', { text, target_lang: targetLang });
+    return result.translatedText;
+  } catch (err) {
+    console.warn('[AI Fallback] Local deterministic translation.');
+    
+    // Fallback translations
+    if (targetLang === 'te') {
+      if (text.toLowerCase().includes("pothole")) {
+        return "రోడ్డు గుంతలు ఎక్కువగా ఉన్నాయి, దీనివల్ల వాహనాలు ప్రయాణించడానికి కష్టంగా ఉంది.";
+      } else if (text.toLowerCase().includes("garbage") || text.toLowerCase().includes("trash")) {
+        return "రోడ్డుపై చెత్త కుప్పలు పేరుకుపోయాయి, దీనివల్ల దుర్వాసన వస్తోంది మరియు ఆరోగ్యం పాడవుతుంది.";
+      } else if (text.toLowerCase().includes("water")) {
+        return "మంచినీటి పైపులైను లీకేజీ అవ్వడం వల్ల నీరు వృధా అవుతోంది మరియు రోడ్డు నిండుతోంది.";
+      }
+      return "పౌరుల ఫిర్యాదు: మీడియా ద్వారా సమస్య నివేదించబడింది.";
+    } else if (targetLang === 'hi') {
+      if (text.toLowerCase().includes("pothole")) {
+        return "सड़क पर गहरे गड्ढे बन गए हैं, जिससे वाहनों के आवागमन में खतरा हो रहा है।";
+      } else if (text.toLowerCase().includes("garbage") || text.toLowerCase().includes("trash")) {
+        return "सड़क पर कूड़े के ढेर जमा हो गए हैं, जिससे दुर्गंध आ रही है और बीमारी फैलने का खतरा है।";
+      } else if (text.toLowerCase().includes("water")) {
+        return "पानी की पाइपलाइन लीक हो रही है, जिससे सड़क पर पानी भर रहा है और पानी बर्बाद हो रहा है।";
+      }
+      return "नागरिक शिकायत: मीडिया के माध्यम से समस्या दर्ज की गई है।";
+    }
+    return text;
+  }
+};

@@ -119,29 +119,41 @@ const seedDatabase = async () => {
       }
     });
 
-    // 4. Seed Worker
-    const workerEmail = 'worker@civicai.org';
+    // 4. Seed Worker (one for each department)
     const workerPasswordHash = await bcrypt.hash('Worker@123', 10);
-    const [workerUser] = await User.findOrCreate({
-      where: { email: workerEmail },
-      defaults: {
-        name: 'Field Technician',
-        passwordHash: workerPasswordHash,
-        role: 'worker',
-        phone: '3333333333'
-      }
-    });
+    const workerPhoneMap = {
+      'Roads': '3333333333',
+      'Water': '3333333334',
+      'Sanitation': '3333333335',
+      'Electricity': '3333333336',
+      'Traffic': '3333333337',
+      'Parks': '3333333338'
+    };
 
-    // Bind worker to department 'Roads'
-    await Worker.findOrCreate({
-      where: { userId: workerUser.id },
-      defaults: {
-        departmentId: deptInstances['Roads'].id,
-        status: 'available',
-        lat: 17.385044, // Default City Center Coord
-        lng: 78.486671
-      }
-    });
+    for (const name of depts) {
+      const emailSuffix = name.toLowerCase();
+      const email = emailSuffix === 'roads' ? 'worker@civicai.org' : `worker_${emailSuffix}@civicai.org`;
+      
+      const [workerUser] = await User.findOrCreate({
+        where: { email },
+        defaults: {
+          name: emailSuffix === 'roads' ? 'Field Technician' : `Field Technician - ${name}`,
+          passwordHash: workerPasswordHash,
+          role: 'worker',
+          phone: workerPhoneMap[name] || '3333333399'
+        }
+      });
+
+      await Worker.findOrCreate({
+        where: { userId: workerUser.id },
+        defaults: {
+          departmentId: deptInstances[name].id,
+          status: 'available',
+          lat: 17.385044, // Default City Center Coord
+          lng: 78.486671
+        }
+      });
+    }
 
     // 5. Seed Citizen
     const citizenEmail = 'citizen@civicai.org';

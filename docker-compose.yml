@@ -50,7 +50,7 @@ services:
     environment:
       - PORT=8000
       - HOST=0.0.0.0
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - XAI_API_KEY=${XAI_API_KEY}
     depends_on:
       - backend
 

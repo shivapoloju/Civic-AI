@@ -4,29 +4,36 @@
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-800 transition-colors duration-300 font-sans antialiased;
+    @apply bg-slate-50 text-slate-800 transition-colors duration-200 font-sans antialiased;
   }
   
   body.dark {
     @apply bg-darkbg-900 text-slate-100;
   }
+
+  /* Global input styling for high premium design consistency */
+  input[type="text"], input[type="email"], input[type="password"], select, textarea {
+    @apply border border-slate-200 dark:border-darkbg-700 bg-white dark:bg-darkbg-800 text-slate-800 dark:text-slate-100 rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all duration-150 shadow-sm;
+  }
+
+  button {
+    @apply transition-all duration-150 ease-out;
+  }
 }
 
 /* Custom Premium Utilities */
 
-/* Glassmorphism card utility */
+/* Premium surface panels (Vercel/Linear style) */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.45);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
 }
 
 .dark .glass-panel {
-  background: rgba(21, 28, 44, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: #161720;
+  border: 1px solid #242636;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 
 /* Gaps and scrollbar styling */
@@ -44,21 +51,21 @@
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  @apply bg-slate-700;
+  @apply bg-darkbg-700;
 }
 
-/* Glow animations for active issues */
+/* Glow indicators (now refined indicators instead of heavy glows) */
 .glow-red {
-  box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+  border-left: 3px solid rgba(239, 68, 68, 0.7);
 }
 .glow-yellow {
-  box-shadow: 0 0 15px rgba(234, 179, 8, 0.5);
+  border-left: 3px solid rgba(234, 179, 8, 0.7);
 }
 .glow-blue {
-  box-shadow: 0 0 15px rgba(14, 165, 233, 0.5);
+  border-left: 3px solid rgba(6, 182, 212, 0.7);
 }
 .glow-green {
-  box-shadow: 0 0 15px rgba(34, 197, 94, 0.5);
+  border-left: 3px solid rgba(34, 197, 94, 0.7);
 }
 
 /* Leaflet maps custom tiles fix */
@@ -67,6 +74,7 @@
   height: 100%;
   z-index: 1;
 }
+
 .dark .leaflet-tile {
-  filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3);
+  filter: brightness(0.65) invert(1) contrast(2.5) hue-rotate(200deg) saturate(0.25);
 }
