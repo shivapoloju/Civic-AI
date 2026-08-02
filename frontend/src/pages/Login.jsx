@@ -129,9 +129,9 @@ const Login = () => {
         {/* Brand Header */}
         <div className="text-center mb-8">
           <div className="inline-flex bg-gradient-to-tr from-brand-600 to-brand-500 text-white font-black text-2xl p-4 rounded-2xl shadow-lg shadow-brand-500/20 mb-3 tracking-wider">
-            CAI
+            CS
           </div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-white">Welcome to CivicAI</h2>
+          <h2 className="text-2xl font-extrabold tracking-tight text-white">Welcome to Civic Sense</h2>
           <p className="text-sm text-slate-400 mt-1.5">See it. Report it. Track it. Verify it.</p>
         </div>
 

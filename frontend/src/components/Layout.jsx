@@ -71,11 +71,11 @@ const Layout = ({ children }) => {
       <header className="sticky top-0 z-50 glass-panel shadow-sm px-6 py-4 flex items-center justify-between border-b dark:border-slate-800 border-slate-200">
         <div className="flex items-center gap-3">
           <div className="bg-gradient-to-tr from-brand-600 to-brand-500 p-2.5 rounded-xl shadow-md text-white font-bold text-lg tracking-wider">
-            CAI
+            CS
           </div>
           <div>
             <h1 className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-brand-500 to-brand-600 bg-clip-text text-transparent">
-              CivicAI
+              Civic Sense
             </h1>
             <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Smart City Resolver</p>
           </div>
@@ -174,7 +174,7 @@ const Layout = ({ children }) => {
       </main>
 
       <footer className="py-6 border-t dark:border-slate-800 text-center text-xs text-slate-400 bg-transparent">
-        <p>&copy; {new Date().getFullYear()} CivicAI Corp. Built for Smart Governance. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} Civic Sense Corp. Built for Smart Governance. All rights reserved.</p>
       </footer>
     </div>
   );

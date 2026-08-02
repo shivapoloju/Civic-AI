@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 
 // Pages
+import Landing from './pages/Landing';
 import Login from './pages/Login';
 import CitizenDashboard from './pages/CitizenDashboard';
 import WorkerDashboard from './pages/WorkerDashboard';
@@ -18,7 +19,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-darkbg-900 text-white font-extrabold text-sm uppercase tracking-widest animate-pulse">
-        CivicAI - Loading session...
+        Civic Sense - Loading session...
       </div>
     );
   }
@@ -48,6 +49,9 @@ const AppContent = () => {
   return (
     <Router>
       <Routes>
+        {/* Public Landing Route */}
+        <Route path="/" element={<Landing />} />
+
         {/* Public Login Route */}
         <Route path="/login" element={<Login />} />
         
@@ -100,7 +104,7 @@ const AppContent = () => {
             user ? (
               <Navigate to={user.role === 'admin' ? '/admin' : user.role === 'supervisor' ? '/supervisor' : user.role === 'worker' ? '/worker' : user.role === 'officer' ? '/officer' : '/citizen'} replace />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           } 
         />
