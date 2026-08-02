@@ -9,16 +9,16 @@ export default {
     extend: {
       colors: {
         brand: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          500: '#0ea5e9', // Vibrant Sky Blue
-          600: '#0284c7',
-          700: '#0369a1',
+          50: '#fff7ed',
+          100: '#ffedd5',
+          500: '#f97316', // Indian Saffron / Orange
+          600: '#ea580c', // Deep Saffron
+          700: '#c2410c',
         },
         darkbg: {
-          900: '#0b0f19', // Premium Deep Dark Blue
-          800: '#151c2c', // Card Dark Blue
-          700: '#1f293d',
+          900: '#051026', // Deep NDMA Navy Blue
+          800: '#0c2147', // Card NDMA Navy Blue
+          700: '#122e5e',
         }
       },
       animation: {
