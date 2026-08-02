@@ -56,6 +56,7 @@ const SupervisorDashboard = () => {
   const [aiReport, setAiReport] = useState(null);
   const [selectedAudit, setSelectedAudit] = useState(null);
   const [selectedDispatch, setSelectedDispatch] = useState(null);
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
 
   useEffect(() => {
     const handleLangUpdate = () => {
@@ -66,7 +67,7 @@ const SupervisorDashboard = () => {
   }, []);
 
   useEffect(() => {
-    const desc = selectedDispatch?.description || selectedAudit?.description;
+    const desc = selectedDispatch?.description || selectedAudit?.description || selectedComplaint?.description;
     if (!desc) {
       setTranslatedDesc('');
       return;
@@ -90,7 +91,7 @@ const SupervisorDashboard = () => {
     };
 
     translate();
-  }, [selectedDispatch, selectedAudit, lang]);
+  }, [selectedDispatch, selectedAudit, selectedComplaint, lang]);
   const [availableWorkers, setAvailableWorkers] = useState([]);
   const [complaints, setComplaints] = useState([]);
   const { user } = useAuth();
@@ -526,6 +527,135 @@ const SupervisorDashboard = () => {
         </div>
 
       </div>
+
+      {/* Department Grievance Registry */}
+      <div className="glass-panel shadow-md rounded-2xl p-6 border dark:border-slate-800 mt-8 text-slate-300">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-bold text-sm uppercase tracking-wider text-slate-400 flex items-center gap-2">
+            <ClipboardList className="w-5 h-5 text-brand-500" /> Department Grievance Registry
+          </h3>
+          <span className="px-2 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-darkbg-800 font-extrabold text-slate-400 uppercase">
+            {deptComplaints.length} Total
+          </span>
+        </div>
+
+        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+          {deptComplaints.length === 0 ? (
+            <p className="text-slate-400 text-xs text-center py-6">No complaints filed in your department yet.</p>
+          ) : (
+            deptComplaints.map(c => (
+              <div 
+                key={c.id} 
+                onClick={() => setSelectedComplaint(c)}
+                className="p-3.5 border dark:border-slate-800/60 border-slate-200 rounded-xl text-xs bg-slate-50 dark:bg-darkbg-800/10 hover:scale-[1.01] transition shadow-sm cursor-pointer flex justify-between items-start"
+              >
+                <div className="space-y-1 max-w-[70%] text-left">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 text-[11px]">{t[lang]?.categories?.[c.category] || c.category}</span>
+                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold text-white uppercase ${
+                      c.priority === 'critical' ? 'bg-red-500 animate-pulse' : c.priority === 'high' ? 'bg-orange-500' : 'bg-blue-500'
+                    }`}>{c.priority}</span>
+                  </div>
+                  <p className="text-slate-700 dark:text-slate-300 font-medium truncate">{c.description}</p>
+                  <p className="text-[10px] text-slate-400 truncate">{c.address || 'GPS Coordinates'}</p>
+                </div>
+
+                <div className="flex flex-col items-end gap-1 text-[10px]">
+                  <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold capitalize ${
+                    c.status === 'closed' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                    c.status === 'citizen_verified' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' :
+                    c.status === 'completed' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                    'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+                  }`}>
+                    {c.status.replace('_', ' ')}
+                  </span>
+                  <span className="text-slate-500 text-[9px]">{new Date(c.createdAt).toLocaleDateString()}</span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Detail Modal */}
+      {selectedComplaint && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="glass-panel w-full max-w-2xl rounded-3xl p-6 border dark:border-slate-800 shadow-2xl relative max-h-[90vh] overflow-y-auto text-slate-300">
+            
+            <button 
+              onClick={() => setSelectedComplaint(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 font-extrabold text-lg"
+            >
+              ✕
+            </button>
+
+            <div className="flex justify-between items-center border-b dark:border-slate-800 pb-3 mb-4">
+              <div>
+                <h3 className="font-extrabold text-base uppercase tracking-wider text-brand-500">{t[lang]?.categories?.[selectedComplaint.category] || selectedComplaint.category}</h3>
+                <p className="text-[10px] text-slate-400">ID: {selectedComplaint.id}</p>
+              </div>
+              <span className={`px-2.5 py-0.5 rounded text-[9px] font-bold text-white uppercase ${
+                selectedComplaint.priority === 'critical' ? 'bg-red-500' : selectedComplaint.priority === 'high' ? 'bg-orange-500' : 'bg-blue-500'
+              }`}>{selectedComplaint.priority}</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Citizen Reported Photo</span>
+                {selectedComplaint.imageUrlBefore ? (
+                  <img src={`${BASE_URL}${selectedComplaint.imageUrlBefore}`} className="w-full h-40 object-cover rounded-xl border dark:border-slate-800" />
+                ) : (
+                  <div className="w-full h-40 bg-slate-100 dark:bg-darkbg-800 rounded-xl flex items-center justify-center text-slate-400 text-xs">No Photo</div>
+                )}
+              </div>
+              <div>
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Repair After Photo</span>
+                {selectedComplaint.imageUrlAfter ? (
+                  <img src={`${BASE_URL}${selectedComplaint.imageUrlAfter}`} className="w-full h-40 object-cover rounded-xl border dark:border-slate-800" />
+                ) : (
+                  <div className="w-full h-40 bg-slate-100 dark:bg-darkbg-800 rounded-xl flex items-center justify-center text-slate-400 text-xs">Awaiting Repair</div>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-3 mb-6 bg-slate-50 dark:bg-darkbg-800/40 p-4 rounded-xl border dark:border-slate-800 text-xs text-left">
+              <div>
+                <h4 className="font-bold uppercase tracking-wider text-slate-400">Description</h4>
+                <p className="text-slate-700 dark:text-slate-300 mt-1 leading-relaxed">{translatedDesc || selectedComplaint.description}</p>
+              </div>
+              {selectedComplaint.aiDescription && (
+                <div className="border-t dark:border-slate-800/60 pt-3">
+                  <h4 className="font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1">
+                    <span>✨ AI Detailed Report</span>
+                  </h4>
+                  <p className="text-slate-300 mt-1 leading-relaxed font-mono text-[11px] whitespace-pre-line">{selectedComplaint.aiDescription}</p>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-bold uppercase tracking-wider text-slate-400">Reporter Details</h4>
+                  <p className="text-slate-500 dark:text-slate-400 mt-1 font-semibold">{selectedComplaint.citizen?.name || 'Anonymous'}</p>
+                  <p className="text-[10px] text-slate-500">{selectedComplaint.citizen?.phone || 'No phone'}</p>
+                </div>
+                <div>
+                  <h4 className="font-bold uppercase tracking-wider text-slate-400">Assigned Department</h4>
+                  <p className="text-slate-500 dark:text-slate-400 mt-1 font-semibold">{selectedComplaint.department?.name || 'Unassigned'}</p>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-bold uppercase tracking-wider text-slate-400">Address</h4>
+                <p className="text-slate-500 mt-1">{selectedComplaint.address || `GPS: ${selectedComplaint.lat}, ${selectedComplaint.lng}`}</p>
+              </div>
+            </div>
+
+            <div className="border-t dark:border-slate-800 pt-4 text-left">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Incident Timeline</h4>
+              <Timeline currentStatus={selectedComplaint.status} />
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* Verification Inspection Modal popups */}
       {selectedAudit && (
