@@ -623,14 +623,6 @@ const SupervisorDashboard = () => {
                 <h4 className="font-bold uppercase tracking-wider text-slate-400">Description</h4>
                 <p className="text-slate-700 dark:text-slate-300 mt-1 leading-relaxed">{translatedDesc || selectedComplaint.description}</p>
               </div>
-              {selectedComplaint.aiDescription && (
-                <div className="border-t dark:border-slate-800/60 pt-3">
-                  <h4 className="font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1">
-                    <span>✨ AI Detailed Report</span>
-                  </h4>
-                  <p className="text-slate-300 mt-1 leading-relaxed font-mono text-[11px] whitespace-pre-line">{selectedComplaint.aiDescription}</p>
-                </div>
-              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="font-bold uppercase tracking-wider text-slate-400">Reporter Details</h4>
@@ -678,14 +670,6 @@ const SupervisorDashboard = () => {
               <div>Category: <span className="font-bold">{t[lang]?.categories?.[selectedAudit.category] || selectedAudit.category}</span></div>
               <div>Address: <span className="font-semibold text-slate-500">{selectedAudit.address}</span></div>
               <div>Description: <span className="font-semibold text-slate-300">{translatedDesc || selectedAudit.description}</span></div>
-              {selectedAudit.aiDescription && (
-                <div className="mt-2 pt-2 border-t dark:border-slate-800/60">
-                  <div className="font-bold text-indigo-400 uppercase text-[9px] flex items-center gap-1 mb-1">
-                    <span>✨ AI Detailed Report</span>
-                  </div>
-                  <p className="text-slate-300 whitespace-pre-line leading-relaxed font-mono text-[10px]">{selectedAudit.aiDescription}</p>
-                </div>
-              )}
             </div>
 
             {/* Before/After side-by-side comparison */}
@@ -810,14 +794,6 @@ const SupervisorDashboard = () => {
               <div>Address: <span className="font-semibold text-slate-500">{selectedDispatch.address}</span></div>
               <div>Priority: <span className="font-bold text-orange-500 uppercase">{selectedDispatch.priority}</span></div>
               <div>Description: <span className="font-semibold text-slate-300">{translatedDesc || selectedDispatch.description}</span></div>
-              {selectedDispatch.aiDescription && (
-                <div className="mt-2 pt-2 border-t dark:border-slate-800/60">
-                  <div className="font-bold text-indigo-400 uppercase text-[9px] flex items-center gap-1 mb-1">
-                    <span>✨ AI Detailed Report</span>
-                  </div>
-                  <p className="text-slate-300 whitespace-pre-line leading-relaxed font-mono text-[10px]">{selectedDispatch.aiDescription}</p>
-                </div>
-              )}
             </div>
 
             {/* Timeline Progress */}
