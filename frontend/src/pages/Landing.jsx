@@ -17,7 +17,12 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans overflow-x-hidden selection:bg-brand-500 selection:text-white relative">
       {/* Subtle tech-grid overlay */}
-      <div className="absolute inset-0 tech-grid -z-20 pointer-events-none" />
+      <div className="absolute inset-0 tech-grid -z-20 pointer-events-none opacity-30" />
+
+      {/* Radial glow effects using Tailwind arbitrary classes */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.12),transparent_45%)] -z-10 pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(236,72,153,0.06),transparent_40%)] -z-10 pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_60%_30%,rgba(16,185,129,0.04),transparent_35%)] -z-10 pointer-events-none" />
 
       {/* Dynamic drifting ambient background blobs */}
       <div className="absolute top-10 left-1/4 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl -z-10 animate-float-1" />
