@@ -16,10 +16,13 @@ const Landing = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans overflow-x-hidden selection:bg-brand-500 selection:text-white relative">
-      {/* Dynamic ambient background blobs */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl -z-10 animate-pulse duration-[6000ms]" />
-      <div className="absolute top-1/3 right-1/4 w-[400px] h-[400px] bg-indigo-500/10 rounded-full blur-3xl -z-10 animate-pulse duration-[8000ms]" />
-      <div className="absolute bottom-10 left-1/3 w-[350px] h-[350px] bg-pink-500/5 rounded-full blur-3xl -z-10 animate-pulse duration-[5000ms]" />
+      {/* Subtle tech-grid overlay */}
+      <div className="absolute inset-0 tech-grid -z-20 pointer-events-none" />
+
+      {/* Dynamic drifting ambient background blobs */}
+      <div className="absolute top-10 left-1/4 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl -z-10 animate-float-1" />
+      <div className="absolute top-1/3 right-1/4 w-[400px] h-[400px] bg-indigo-500/10 rounded-full blur-3xl -z-10 animate-float-2" />
+      <div className="absolute bottom-20 left-1/3 w-[350px] h-[350px] bg-pink-500/5 rounded-full blur-3xl -z-10 animate-float-1" />
 
       {/* Header / Navbar */}
       <header className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40 transition-all">
